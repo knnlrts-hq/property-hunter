@@ -530,6 +530,77 @@
         border-radius: var(--radius-lg);
       }
     }
+
+    /* Forms */
+    .form-group {
+      margin-bottom: var(--spacing-md);
+    }
+
+    .form-label {
+      display: block;
+      font-size: var(--font-size-sm);
+      font-weight: 500;
+      margin-bottom: var(--spacing-xs);
+      color: var(--color-gray-700);
+    }
+
+    .form-label--required::after {
+      content: ' *';
+      color: var(--color-danger);
+    }
+
+    .form-input {
+      width: 100%;
+      height: var(--touch-target);
+      padding: 0 var(--spacing-md);
+      border: 1px solid var(--color-gray-300);
+      border-radius: var(--radius-md);
+      font-size: var(--font-size-base);
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .form-input--error {
+      border-color: var(--color-danger);
+    }
+
+    .form-error {
+      color: var(--color-danger);
+      font-size: var(--font-size-sm);
+      margin-top: var(--spacing-xs);
+    }
+
+    .form-hint {
+      color: var(--color-gray-500);
+      font-size: var(--font-size-sm);
+      margin-top: var(--spacing-xs);
+    }
+
+    /* Add property map */
+    .add-map-container {
+      height: 300px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--color-gray-300);
+    }
+
+    .add-map-hint {
+      text-align: center;
+      padding: var(--spacing-md);
+      background: var(--color-gray-50);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--spacing-md);
+      color: var(--color-gray-700);
+    }
+
+    @keyframes highlight {
+      0%, 100% { background: white; }
+      50% { background: #dbeafe; }
+    }
   </style>
 </head>
 <body>
@@ -1186,6 +1257,150 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeModal();
     });
+
+    // ============================================
+    // ADD PROPERTY
+    // ============================================
+
+    let addPropertyData = {};
+    let addPropertyMap = null;
+    let addPropertyMarker = null;
+
+    // Open add property modal (Step 1)
+    function openAddPropertyStep1() {
+      addPropertyData = {
+        url: '',
+        address: '',
+        price: '',
+        coordinates: null
+      };
+
+      const content = `
+        <div class="modal__header">
+          <span class="modal__title">Nieuwe woning toevoegen</span>
+          <button class="modal__close" onclick="closeModal()">×</button>
+        </div>
+        <div class="modal__body">
+          <div class="form-group">
+            <label class="form-label">Link (immoweb/zimmo/biddit)</label>
+            <input type="url" class="form-input" id="addUrl" placeholder="https://www.immoweb.be/...">
+            <p class="form-hint">Optioneel - plak de link naar de advertentie</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label form-label--required">Adres</label>
+            <input type="text" class="form-input" id="addAddress" placeholder="Straat 123, Gemeente">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Prijs (€)</label>
+            <input type="number" class="form-input" id="addPrice" placeholder="250000">
+          </div>
+        </div>
+        <div class="modal__footer">
+          <button class="btn btn--primary btn--large" id="addStep1Next">Volgende →</button>
+        </div>
+      `;
+
+      openModal(content, { full: true });
+
+      // Focus first input
+      setTimeout(() => document.getElementById('addAddress').focus(), 100);
+
+      // Next button handler
+      document.getElementById('addStep1Next').addEventListener('click', () => {
+        const address = document.getElementById('addAddress').value.trim();
+        if (!address) {
+          document.getElementById('addAddress').classList.add('form-input--error');
+          return;
+        }
+
+        addPropertyData.url = document.getElementById('addUrl').value.trim();
+        addPropertyData.address = address;
+        addPropertyData.price = parseInt(document.getElementById('addPrice').value) || 0;
+
+        openAddPropertyStep2();
+      });
+    }
+
+    // Open add property modal (Step 2 - Map)
+    function openAddPropertyStep2() {
+      const content = `
+        <div class="modal__header">
+          <button class="modal__back" onclick="openAddPropertyStep1()">← Terug</button>
+          <button class="modal__close" onclick="closeModal()">×</button>
+        </div>
+        <div class="modal__body">
+          <div class="add-map-hint">
+            📍 Tik op de kaart om de locatie aan te duiden
+          </div>
+          <div class="add-map-container" id="addMap"></div>
+        </div>
+        <div class="modal__footer">
+          <button class="btn btn--primary btn--large" id="addStep2Save" disabled>Opslaan ✓</button>
+        </div>
+      `;
+
+      openModal(content, { full: true });
+
+      // Initialize map
+      setTimeout(() => {
+        addPropertyMap = L.map('addMap').setView(MAP_CONFIG.center, MAP_CONFIG.zoom);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap'
+        }).addTo(addPropertyMap);
+
+        // Click to place marker
+        addPropertyMap.on('click', (e) => {
+          if (addPropertyMarker) {
+            addPropertyMarker.remove();
+          }
+          addPropertyMarker = L.marker(e.latlng).addTo(addPropertyMap);
+          addPropertyData.coordinates = { lat: e.latlng.lat, lng: e.latlng.lng };
+          document.getElementById('addStep2Save').disabled = false;
+        });
+
+        // If we already have coordinates (going back), show marker
+        if (addPropertyData.coordinates) {
+          addPropertyMarker = L.marker([addPropertyData.coordinates.lat, addPropertyData.coordinates.lng])
+            .addTo(addPropertyMap);
+          document.getElementById('addStep2Save').disabled = false;
+        }
+      }, 100);
+
+      // Save button handler
+      document.getElementById('addStep2Save').addEventListener('click', saveNewProperty);
+    }
+
+    // Save new property
+    function saveNewProperty() {
+      if (!addPropertyData.coordinates) return;
+
+      const property = Store.addProperty({
+        url: addPropertyData.url,
+        address: addPropertyData.address,
+        price: addPropertyData.price,
+        coordinates: addPropertyData.coordinates
+      });
+
+      closeModal();
+      renderApp();
+
+      // Clean up
+      addPropertyMap = null;
+      addPropertyMarker = null;
+      addPropertyData = {};
+
+      // Highlight new property (optional: could open detail)
+      setTimeout(() => {
+        const card = document.querySelector(`[data-id="${property.id}"]`);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          card.style.animation = 'highlight 1s ease';
+        }
+      }, 100);
+    }
+
+    // Add button click handler
+    document.getElementById('addBtn').addEventListener('click', openAddPropertyStep1);
   </script>
 </body>
 </html>

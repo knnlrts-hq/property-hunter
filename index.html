@@ -77,7 +77,52 @@
   </style>
 </head>
 <body>
-  <!-- HTML structure goes here -->
+  <div id="app">
+    <!-- Header -->
+    <header class="header">
+      <h1 class="header__title">Property Hunter</h1>
+      <button class="header__menu-btn" id="menuBtn" aria-label="Menu">
+        <span>☰</span>
+      </button>
+    </header>
+
+    <!-- Main content -->
+    <main class="main">
+      <!-- Map section -->
+      <section class="map-container">
+        <div id="map"></div>
+      </section>
+
+      <!-- List section -->
+      <section class="list-container">
+        <!-- Search & filters -->
+        <div class="filters">
+          <div class="filters__search">
+            <input type="text" id="searchInput" placeholder="🔍 Zoeken..." class="search-input">
+          </div>
+          <button class="filters__toggle" id="filterToggle">Filters ▼</button>
+          <div class="filters__panel" id="filterPanel" hidden>
+            <!-- Filter dropdowns go here -->
+          </div>
+        </div>
+
+        <!-- Property list -->
+        <div class="property-list" id="propertyList">
+          <!-- Property cards rendered here -->
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer with add button -->
+    <footer class="footer">
+      <button class="btn btn--primary btn--large" id="addBtn">
+        + Toevoegen
+      </button>
+    </footer>
+
+    <!-- Modals container -->
+    <div id="modals"></div>
+  </div>
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"

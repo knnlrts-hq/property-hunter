@@ -251,6 +251,45 @@
         border-left: 1px solid var(--color-gray-200);
       }
     }
+
+    /* Map markers */
+    .marker-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      border: 2px solid white;
+      box-shadow: var(--shadow-md);
+    }
+
+    .marker-icon span {
+      transform: rotate(45deg);
+      font-size: 12px;
+    }
+
+    .marker-icon--nieuw { background: var(--color-primary); }
+    .marker-icon--bezoek_gepland { background: var(--color-purple); }
+    .marker-icon--bezocht { background: var(--color-success); }
+    .marker-icon--ja { background: var(--color-success); }
+    .marker-icon--nee { background: var(--color-danger); }
+    .marker-icon--misschien { background: var(--color-warning); }
+
+    .marker-icon--onder_optie {
+      background-image: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 3px,
+        rgba(255,255,255,0.3) 3px,
+        rgba(255,255,255,0.3) 6px
+      );
+    }
+
+    .marker-icon--verkocht {
+      opacity: 0.5;
+    }
   </style>
 </head>
 <body>
@@ -538,6 +577,86 @@
     document.addEventListener('DOMContentLoaded', function() {
       initMap();
     });
+
+    // Create marker icon based on property status
+    function createMarkerIcon(property) {
+      const status = property.status;
+      const propertyStatus = property.propertyStatus;
+
+      let symbol = '';
+      if (status === 'ja') symbol = '★';
+      else if (status === 'nee') symbol = '✕';
+      else if (status === 'misschien') symbol = '?';
+
+      let classes = `marker-icon marker-icon--${status}`;
+      if (propertyStatus === 'onder_optie') classes += ' marker-icon--onder_optie';
+      if (propertyStatus === 'verkocht') classes += ' marker-icon--verkocht';
+
+      return L.divIcon({
+        className: 'marker-wrapper',
+        html: `<div class="${classes}"><span>${symbol}</span></div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -32]
+      });
+    }
+
+    // Add marker to map
+    function addMarkerToMap(property) {
+      if (!property.coordinates || !property.coordinates.lat) return;
+
+      const marker = L.marker(
+        [property.coordinates.lat, property.coordinates.lng],
+        { icon: createMarkerIcon(property) }
+      );
+
+      const avgScore = Store.calculateAverageScore(property);
+      const scoreText = avgScore > 0 ? `★ ${avgScore.toFixed(1)}` : 'Niet beoordeeld';
+
+      marker.bindPopup(`
+        <strong>${property.address}</strong><br>
+        €${property.price.toLocaleString('nl-BE')}<br>
+        ${scoreText}
+      `);
+
+      marker.on('click', () => {
+        openPropertyDetail(property.id);
+      });
+
+      marker.addTo(map);
+      markers[property.id] = marker;
+    }
+
+    // Update marker on map
+    function updateMarkerOnMap(property) {
+      if (markers[property.id]) {
+        markers[property.id].remove();
+      }
+      addMarkerToMap(property);
+    }
+
+    // Remove marker from map
+    function removeMarkerFromMap(propertyId) {
+      if (markers[propertyId]) {
+        markers[propertyId].remove();
+        delete markers[propertyId];
+      }
+    }
+
+    // Render all markers
+    function renderMarkers(properties) {
+      // Clear existing markers
+      Object.values(markers).forEach(m => m.remove());
+      markers = {};
+
+      // Add markers for all properties
+      properties.forEach(p => addMarkerToMap(p));
+    }
+
+    // Placeholder for openPropertyDetail (implemented later)
+    function openPropertyDetail(id) {
+      console.log('Open property detail:', id);
+    }
   </script>
 </body>
 </html>

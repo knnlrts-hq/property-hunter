@@ -691,7 +691,7 @@
       const scoreText = avgScore > 0 ? `★ ${avgScore.toFixed(1)}` : 'Niet beoordeeld';
 
       marker.bindPopup(`
-        <strong>${property.address}</strong><br>
+        <strong>${escapeHtml(property.address)}</strong><br>
         €${property.price.toLocaleString('nl-BE')}<br>
         ${scoreText}
       `);

@@ -503,6 +503,41 @@
 
     // Initialize store on load
     Store.load();
+
+    // ============================================
+    // MAP
+    // ============================================
+
+    let map;
+    let markers = {};  // Store markers by property ID
+
+    const MAP_CONFIG = {
+      center: [50.9859, 4.8310],  // Aarschot
+      zoom: 10,  // Shows Vlaams-Brabant & Antwerpen
+      minZoom: 7,
+      maxZoom: 18
+    };
+
+    function initMap() {
+      map = L.map('map').setView(MAP_CONFIG.center, MAP_CONFIG.zoom);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+
+      // Handle map click for adding properties (will be used later)
+      map.on('click', handleMapClick);
+    }
+
+    function handleMapClick(e) {
+      // Will be implemented in add property flow
+      console.log('Map clicked:', e.latlng);
+    }
+
+    // Initialize map when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+      initMap();
+    });
   </script>
 </body>
 </html>

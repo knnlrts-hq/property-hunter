@@ -417,6 +417,119 @@
       background: var(--color-primary);
       color: white;
     }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 1000;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal {
+      background: white;
+      width: 100%;
+      max-height: 90vh;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      display: flex;
+      flex-direction: column;
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .modal--full {
+      height: 100%;
+      max-height: 100vh;
+      border-radius: 0;
+    }
+
+    .modal__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--spacing-md);
+      border-bottom: 1px solid var(--color-gray-200);
+      flex-shrink: 0;
+    }
+
+    .modal__title {
+      font-size: var(--font-size-lg);
+      font-weight: 600;
+    }
+
+    .modal__close {
+      width: var(--touch-target);
+      height: var(--touch-target);
+      background: none;
+      border: none;
+      font-size: var(--font-size-xl);
+      cursor: pointer;
+      color: var(--color-gray-500);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal__back {
+      background: none;
+      border: none;
+      font-size: var(--font-size-base);
+      cursor: pointer;
+      color: var(--color-primary);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+      padding: 0;
+    }
+
+    .modal__actions {
+      display: flex;
+      gap: var(--spacing-sm);
+    }
+
+    .modal__body {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--spacing-md);
+    }
+
+    .modal__footer {
+      padding: var(--spacing-md);
+      border-top: 1px solid var(--color-gray-200);
+      flex-shrink: 0;
+    }
+
+    /* Desktop modal */
+    @media (min-width: 768px) {
+      .modal-overlay {
+        align-items: center;
+      }
+
+      .modal {
+        max-width: 500px;
+        max-height: 80vh;
+        border-radius: var(--radius-lg);
+      }
+
+      .modal--full {
+        max-width: 600px;
+        max-height: 90vh;
+        border-radius: var(--radius-lg);
+      }
+    }
   </style>
 </head>
 <body>
@@ -1026,6 +1139,52 @@
       initMap();
       initFilters();
       renderApp();
+    });
+
+    // ============================================
+    // MODAL SYSTEM
+    // ============================================
+
+    let activeModal = null;
+
+    // Open modal with content
+    function openModal(content, options = {}) {
+      closeModal();  // Close any existing modal
+
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML = `
+        <div class="modal ${options.full ? 'modal--full' : ''}">
+          ${content}
+        </div>
+      `;
+
+      // Close on overlay click (not modal content)
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeModal();
+      });
+
+      document.getElementById('modals').appendChild(overlay);
+      activeModal = overlay;
+
+      // Prevent body scroll
+      document.body.style.overflow = 'hidden';
+
+      return overlay;
+    }
+
+    // Close modal
+    function closeModal() {
+      if (activeModal) {
+        activeModal.remove();
+        activeModal = null;
+        document.body.style.overflow = '';
+      }
+    }
+
+    // ESC key closes modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
     });
   </script>
 </body>

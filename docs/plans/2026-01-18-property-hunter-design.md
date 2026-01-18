@@ -12,6 +12,7 @@ Property Hunter is een eenvoudige tool voor het bijhouden van woningen tijdens e
 
 - Woningen bookmarken door links te plakken van Belgische vastgoedsites
 - Bezoekstatus en -geschiedenis bijhouden
+- Biedingen bijhouden (gepland en uitgebracht)
 - Plus- en minpunten noteren per woning
 - Scores toekennen op vaste categorieën voor eenvoudige vergelijking
 - Kaartweergave met alle gemarkeerde woningen
@@ -75,6 +76,16 @@ Property Hunter is een eenvoudige tool voor het bijhouden van woningen tijdens e
         { date: "2026-01-15", notes: "Eerste bezichtiging met makelaar" }
       ],
 
+      // Biedingen
+      bids: [
+        {
+          amount: 305000,
+          date: "2026-01-20",
+          status: "uitgebracht",  // "gepland" | "uitgebracht"
+          notes: "Eerste bod, onder vraagprijs"
+        }
+      ],
+
       dateAdded: "2026-01-10T14:30:00Z"
     }
   ]
@@ -99,6 +110,12 @@ Property Hunter is een eenvoudige tool voor het bijhouden van woningen tijdens e
 | `beschikbaar` | Beschikbaar | Te koop |
 | `onder_optie` | Onder optie | Iemand heeft optie genomen |
 | `verkocht` | Verkocht | Niet meer beschikbaar |
+
+**Biedingstatus (`bids[].status`):**
+| Waarde | Label | Beschrijving |
+|--------|-------|--------------|
+| `gepland` | Gepland | Bod dat je overweegt uit te brengen |
+| `uitgebracht` | Uitgebracht | Bod dat je daadwerkelijk hebt uitgebracht |
 
 ### Score Categorieën
 
@@ -275,6 +292,13 @@ Full-screen modal bij tap op woning card of marker.
 │ │ Verouderde keuken,      │ │
 │ │ EPC label D             │ │
 │ └─────────────────────────┘ │
+├─────────────────────────────┤
+│ BIEDINGEN                   │
+│ €305.000 - 20 jan 2026      │
+│ [Uitgebracht] Eerste bod... │
+│ €315.000 - 25 jan 2026      │
+│ [Gepland] Verhoogd bod...   │
+│ [+ Bod toevoegen]           │
 ├─────────────────────────────┤
 │ BEZOEKEN                    │
 │ 15 jan 2026 - Eerste bez... │

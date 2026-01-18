@@ -489,6 +489,11 @@ const PROPERTY_STATUS_LABELS = {
   verkocht: 'Verkocht'
 };
 
+const BID_STATUS_LABELS = {
+  gepland: 'Gepland',
+  uitgebracht: 'Uitgebracht'
+};
+
 // Generate UUID
 function generateId() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -552,6 +557,7 @@ const Store = {
       pros: '',
       cons: '',
       visits: [],
+      bids: [],
       dateAdded: new Date().toISOString()
     };
     this.data.properties.push(newProperty);
@@ -2043,6 +2049,79 @@ document.getElementById('addBtn').addEventListener('click', openAddPropertyStep1
   color: var(--color-danger);
 }
 
+/* Bids */
+.bid-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: var(--spacing-sm);
+  background: var(--color-gray-50);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.bid-amount {
+  font-weight: 600;
+  font-size: var(--font-size-base);
+}
+
+.bid-date {
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-500);
+}
+
+.bid-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: var(--spacing-xs);
+}
+
+.bid-status--gepland {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.bid-status--uitgebracht {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.bid-notes {
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-500);
+  margin-top: var(--spacing-xs);
+}
+
+.bid-delete {
+  background: none;
+  border: none;
+  color: var(--color-gray-400);
+  cursor: pointer;
+  padding: var(--spacing-xs);
+}
+
+.bid-delete:hover {
+  color: var(--color-danger);
+}
+
+/* Add bid form */
+.add-bid-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: var(--color-gray-50);
+  border-radius: var(--radius-md);
+  margin-top: var(--spacing-sm);
+}
+
+.add-bid-form[hidden] {
+  display: none;
+}
+
 /* Add visit form */
 .add-visit-form {
   display: flex;
@@ -2199,6 +2278,46 @@ function openPropertyDetail(id) {
                   placeholder="Wat zijn de negatieve punten?">${escapeHtml(property.cons)}</textarea>
       </div>
 
+      <!-- Bids -->
+      <div class="detail-section">
+        <div class="detail-section__title">Biedingen</div>
+        <div id="bidsContainer">
+          ${property.bids.length === 0 ? '<p style="color: var(--color-gray-500); font-size: var(--font-size-sm);">Nog geen biedingen</p>' : ''}
+          ${property.bids.map((bid, index) => `
+            <div class="bid-item">
+              <div>
+                <div class="bid-amount">€${bid.amount.toLocaleString('nl-BE')}</div>
+                <div class="bid-date">${formatDate(bid.date)}</div>
+                <span class="bid-status bid-status--${bid.status}">${BID_STATUS_LABELS[bid.status]}</span>
+                ${bid.notes ? `<div class="bid-notes">${escapeHtml(bid.notes)}</div>` : ''}
+              </div>
+              <button class="bid-delete" onclick="deleteBid(${index})">✕</button>
+            </div>
+          `).join('')}
+        </div>
+        <button class="btn btn--secondary btn--small" onclick="toggleAddBidForm()" id="addBidBtn">
+          + Bod toevoegen
+        </button>
+        <div class="add-bid-form" id="addBidForm" hidden>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Bedrag (€)</label>
+            <input type="number" class="form-input" id="bidAmount" placeholder="305000">
+          </div>
+          <div class="add-visit-row">
+            <input type="date" class="form-input" id="bidDate" value="${new Date().toISOString().split('T')[0]}">
+            <select class="form-input" id="bidStatus">
+              <option value="gepland">Gepland</option>
+              <option value="uitgebracht">Uitgebracht</option>
+            </select>
+          </div>
+          <input type="text" class="form-input" id="bidNotes" placeholder="Notities (optioneel)">
+          <div class="add-visit-row">
+            <button class="btn btn--secondary btn--small" onclick="toggleAddBidForm()">Annuleren</button>
+            <button class="btn btn--primary btn--small" onclick="addBid()">Toevoegen</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Visits -->
       <div class="detail-section">
         <div class="detail-section__title">Bezoeken</div>
@@ -2332,6 +2451,43 @@ function deleteVisit(index) {
   openPropertyDetail(currentPropertyId);
 }
 
+// Toggle add bid form
+function toggleAddBidForm() {
+  const form = document.getElementById('addBidForm');
+  form.hidden = !form.hidden;
+}
+
+// Add bid
+function addBid() {
+  if (!currentPropertyId) return;
+  const property = Store.getProperty(currentPropertyId);
+  const amount = parseInt(document.getElementById('bidAmount').value);
+  const date = document.getElementById('bidDate').value;
+  const status = document.getElementById('bidStatus').value;
+  const notes = document.getElementById('bidNotes').value.trim();
+
+  if (!amount || !date) return;
+
+  const bids = [...property.bids, { amount, date, status, notes }];
+  // Sort by date (newest first)
+  bids.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  Store.updateProperty(currentPropertyId, { bids });
+
+  // Re-open to refresh
+  openPropertyDetail(currentPropertyId);
+  renderApp();
+}
+
+// Delete bid
+function deleteBid(index) {
+  if (!currentPropertyId) return;
+  const property = Store.getProperty(currentPropertyId);
+  const bids = property.bids.filter((_, i) => i !== index);
+  Store.updateProperty(currentPropertyId, { bids });
+  openPropertyDetail(currentPropertyId);
+}
+
 // Confirm delete property
 function confirmDeleteProperty(id) {
   if (confirm('Weet je zeker dat je deze woning wilt verwijderen?')) {
@@ -2363,6 +2519,8 @@ renderApp();
    - Click stars to set scores → average should calculate
    - Add a custom category → new row appears
    - Type in pros/cons → saves on change
+   - Add a bid with amount, date and status (gepland/uitgebracht)
+   - Delete a bid
    - Add a visit with date and notes
    - Delete a visit
    - Click delete button → confirms and removes
@@ -2611,6 +2769,7 @@ const testImport = {
       "pros": "Nice garden",
       "cons": "Old kitchen",
       "visits": [{"date": "2026-01-10", "notes": "First visit"}],
+      "bids": [{"amount": 290000, "date": "2026-01-12", "status": "uitgebracht", "notes": "Eerste bod"}],
       "dateAdded": "2026-01-05T10:00:00Z"
     }
   ]
@@ -2772,6 +2931,7 @@ showToast('Woning verwijderd');
 - [ ] **Custom category:** Can add new category
 - [ ] **Pros/cons:** Text saves on change
 - [ ] **Visits:** Can add, delete, auto-sorts by date
+- [ ] **Bids:** Can add bid with amount/date/status, delete, shows status badge
 - [ ] **Delete property:** Confirms, removes from list and map
 - [ ] **Search:** Filters by text across address/notes
 - [ ] **Status filter:** Shows only matching properties

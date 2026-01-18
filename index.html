@@ -290,6 +290,88 @@
     .marker-icon--verkocht {
       opacity: 0.5;
     }
+
+    /* Property cards */
+    .property-card {
+      background: white;
+      border: 1px solid var(--color-gray-200);
+      border-radius: var(--radius-md);
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-sm);
+      cursor: pointer;
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+
+    .property-card:hover {
+      border-color: var(--color-primary);
+      box-shadow: var(--shadow-md);
+    }
+
+    .property-card:active {
+      transform: scale(0.99);
+    }
+
+    .property-card__address {
+      font-weight: 600;
+      font-size: var(--font-size-base);
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .property-card__price {
+      color: var(--color-gray-700);
+      font-size: var(--font-size-sm);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .property-card__badges {
+      display: flex;
+      gap: var(--spacing-xs);
+      flex-wrap: wrap;
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .badge--nieuw { background: #dbeafe; color: #1e40af; }
+    .badge--bezoek_gepland { background: #f3e8ff; color: #6b21a8; }
+    .badge--bezocht { background: #dcfce7; color: #166534; }
+    .badge--ja { background: #dcfce7; color: #166534; }
+    .badge--nee { background: #fee2e2; color: #991b1b; }
+    .badge--misschien { background: #fef3c7; color: #92400e; }
+
+    .badge--beschikbaar { background: #ecfdf5; color: #065f46; }
+    .badge--onder_optie { background: #fef3c7; color: #92400e; }
+    .badge--verkocht { background: #f3f4f6; color: #6b7280; }
+
+    .property-card__score {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+      color: var(--color-warning);
+      font-size: var(--font-size-sm);
+    }
+
+    .property-card__score-value {
+      color: var(--color-gray-700);
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: var(--spacing-xl);
+      color: var(--color-gray-500);
+    }
+
+    .empty-state__icon {
+      font-size: 48px;
+      margin-bottom: var(--spacing-md);
+    }
   </style>
 </head>
 <body>
@@ -573,11 +655,6 @@
       console.log('Map clicked:', e.latlng);
     }
 
-    // Initialize map when DOM is ready
-    document.addEventListener('DOMContentLoaded', function() {
-      initMap();
-    });
-
     // Create marker icon based on property status
     function createMarkerIcon(property) {
       const status = property.status;
@@ -657,6 +734,88 @@
     function openPropertyDetail(id) {
       console.log('Open property detail:', id);
     }
+
+    // ============================================
+    // PROPERTY LIST
+    // ============================================
+
+    // Render stars for score display
+    function renderStars(score) {
+      const fullStars = Math.floor(score);
+      const hasHalf = score - fullStars >= 0.5;
+      let stars = '★'.repeat(fullStars);
+      if (hasHalf) stars += '½';
+      stars += '☆'.repeat(5 - fullStars - (hasHalf ? 1 : 0));
+      return stars;
+    }
+
+    // Create property card HTML
+    function createPropertyCard(property) {
+      const avgScore = Store.calculateAverageScore(property);
+      const scoreDisplay = avgScore > 0
+        ? `<span class="property-card__score">
+             ${renderStars(avgScore)}
+             <span class="property-card__score-value">${avgScore.toFixed(1)}</span>
+           </span>`
+        : '<span class="property-card__score property-card__score-value">Niet beoordeeld</span>';
+
+      return `
+        <div class="property-card" data-id="${property.id}">
+          <div class="property-card__address">${escapeHtml(property.address)}</div>
+          <div class="property-card__price">€${property.price.toLocaleString('nl-BE')}</div>
+          <div class="property-card__badges">
+            <span class="badge badge--${property.status}">${STATUS_LABELS[property.status]}</span>
+            <span class="badge badge--${property.propertyStatus}">${PROPERTY_STATUS_LABELS[property.propertyStatus]}</span>
+          </div>
+          ${scoreDisplay}
+        </div>
+      `;
+    }
+
+    // Escape HTML to prevent XSS
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Render property list
+    function renderPropertyList(properties) {
+      const listEl = document.getElementById('propertyList');
+
+      if (properties.length === 0) {
+        listEl.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state__icon">🏠</div>
+            <p>Nog geen woningen toegevoegd</p>
+            <p>Klik op "+ Toevoegen" om te beginnen</p>
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = properties.map(p => createPropertyCard(p)).join('');
+
+      // Add click handlers
+      listEl.querySelectorAll('.property-card').forEach(card => {
+        card.addEventListener('click', () => {
+          openPropertyDetail(card.dataset.id);
+        });
+      });
+    }
+
+    // Initial render
+    function renderApp() {
+      const properties = Store.getProperties();
+      renderPropertyList(properties);
+      renderMarkers(properties);
+    }
+
+    // Update DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', function() {
+      initMap();
+      renderApp();
+    });
   </script>
 </body>
 </html>

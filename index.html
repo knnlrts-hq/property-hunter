@@ -601,6 +601,303 @@
       0%, 100% { background: white; }
       50% { background: #dbeafe; }
     }
+
+    /* Detail view */
+    .detail-header {
+      margin-bottom: var(--spacing-md);
+    }
+
+    .detail-address {
+      font-size: var(--font-size-lg);
+      font-weight: 600;
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .detail-price {
+      font-size: var(--font-size-xl);
+      color: var(--color-gray-700);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .detail-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+      color: var(--color-primary);
+      text-decoration: none;
+      font-size: var(--font-size-sm);
+    }
+
+    .detail-link:hover {
+      text-decoration: underline;
+    }
+
+    .detail-section {
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .detail-section__title {
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      color: var(--color-gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .detail-status-row {
+      display: flex;
+      gap: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .detail-status-row .form-group {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    /* Scores */
+    .score-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--spacing-sm) 0;
+      border-bottom: 1px solid var(--color-gray-100);
+    }
+
+    .score-row:last-child {
+      border-bottom: none;
+    }
+
+    .score-label {
+      font-size: var(--font-size-base);
+    }
+
+    .score-stars {
+      display: flex;
+      gap: 2px;
+    }
+
+    .score-star {
+      width: 32px;
+      height: 32px;
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: var(--color-gray-300);
+      padding: 0;
+    }
+
+    .score-star--active {
+      color: var(--color-warning);
+    }
+
+    .score-star:hover {
+      transform: scale(1.1);
+    }
+
+    .score-average {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--spacing-md);
+      background: var(--color-gray-50);
+      border-radius: var(--radius-md);
+      margin-top: var(--spacing-sm);
+    }
+
+    .score-average__label {
+      font-weight: 500;
+    }
+
+    .score-average__value {
+      font-size: var(--font-size-lg);
+      font-weight: 600;
+      color: var(--color-warning);
+    }
+
+    /* Textarea */
+    .form-textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: var(--spacing-md);
+      border: 1px solid var(--color-gray-300);
+      border-radius: var(--radius-md);
+      font-size: var(--font-size-base);
+      font-family: inherit;
+      resize: vertical;
+    }
+
+    .form-textarea:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    /* Visits */
+    .visit-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: var(--spacing-sm);
+      background: var(--color-gray-50);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .visit-date {
+      font-weight: 500;
+      font-size: var(--font-size-sm);
+    }
+
+    .visit-notes {
+      font-size: var(--font-size-sm);
+      color: var(--color-gray-500);
+      margin-top: var(--spacing-xs);
+    }
+
+    .visit-delete {
+      background: none;
+      border: none;
+      color: var(--color-gray-400);
+      cursor: pointer;
+      padding: var(--spacing-xs);
+    }
+
+    .visit-delete:hover {
+      color: var(--color-danger);
+    }
+
+    /* Bids */
+    .bid-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: var(--spacing-sm);
+      background: var(--color-gray-50);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .bid-amount {
+      font-weight: 600;
+      font-size: var(--font-size-base);
+    }
+
+    .bid-date {
+      font-size: var(--font-size-sm);
+      color: var(--color-gray-500);
+    }
+
+    .bid-status {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 500;
+      margin-top: var(--spacing-xs);
+    }
+
+    .bid-status--gepland {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .bid-status--uitgebracht {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .bid-notes {
+      font-size: var(--font-size-sm);
+      color: var(--color-gray-500);
+      margin-top: var(--spacing-xs);
+    }
+
+    .bid-delete {
+      background: none;
+      border: none;
+      color: var(--color-gray-400);
+      cursor: pointer;
+      padding: var(--spacing-xs);
+    }
+
+    .bid-delete:hover {
+      color: var(--color-danger);
+    }
+
+    /* Add bid form */
+    .add-bid-form {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-sm);
+      padding: var(--spacing-md);
+      background: var(--color-gray-50);
+      border-radius: var(--radius-md);
+      margin-top: var(--spacing-sm);
+    }
+
+    .add-bid-form[hidden] {
+      display: none;
+    }
+
+    /* Add visit form */
+    .add-visit-form {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-sm);
+      padding: var(--spacing-md);
+      background: var(--color-gray-50);
+      border-radius: var(--radius-md);
+      margin-top: var(--spacing-sm);
+    }
+
+    .add-visit-form[hidden] {
+      display: none;
+    }
+
+    .add-visit-row {
+      display: flex;
+      gap: var(--spacing-sm);
+    }
+
+    /* Add category */
+    .add-category-row {
+      display: flex;
+      gap: var(--spacing-sm);
+      margin-top: var(--spacing-sm);
+    }
+
+    .add-category-row .form-input {
+      flex: 1;
+    }
+
+    /* Delete button */
+    .btn--danger {
+      background: white;
+      color: var(--color-danger);
+      border: 1px solid var(--color-danger);
+    }
+
+    .btn--danger:hover {
+      background: #fef2f2;
+    }
+
+    .btn--secondary {
+      background: var(--color-gray-100);
+      color: var(--color-gray-700);
+    }
+
+    .btn--secondary:hover {
+      background: var(--color-gray-200);
+    }
+
+    .btn--small {
+      height: 36px;
+      padding: 0 var(--spacing-md);
+      font-size: var(--font-size-sm);
+    }
   </style>
 </head>
 <body>
@@ -989,9 +1286,319 @@
       properties.forEach(p => addMarkerToMap(p));
     }
 
-    // Placeholder for openPropertyDetail (implemented later)
+    // ============================================
+    // PROPERTY DETAIL
+    // ============================================
+
+    let currentPropertyId = null;
+
     function openPropertyDetail(id) {
-      console.log('Open property detail:', id);
+      const property = Store.getProperty(id);
+      if (!property) return;
+
+      currentPropertyId = id;
+
+      const avgScore = Store.calculateAverageScore(property);
+      const categories = Store.getAllCategories();
+
+      const content = `
+        <div class="modal__header">
+          <button class="modal__back" onclick="closeModal()">← Terug</button>
+          <div class="modal__actions">
+            <button class="modal__close" onclick="confirmDeleteProperty('${id}')" title="Verwijderen">🗑️</button>
+          </div>
+        </div>
+        <div class="modal__body">
+          <!-- Header -->
+          <div class="detail-header">
+            <div class="detail-address">${escapeHtml(property.address)}</div>
+            <div class="detail-price">€${property.price.toLocaleString('nl-BE')}</div>
+            ${property.url ? `<a href="${escapeHtml(property.url)}" target="_blank" class="detail-link">🔗 Bekijk advertentie</a>` : ''}
+          </div>
+
+          <!-- Status -->
+          <div class="detail-section">
+            <div class="detail-status-row">
+              <div class="form-group">
+                <label class="form-label">Status</label>
+                <select class="form-input" id="detailStatus" onchange="updatePropertyField('status', this.value)">
+                  ${Object.entries(STATUS_LABELS).map(([value, label]) =>
+                    `<option value="${value}" ${property.status === value ? 'selected' : ''}>${label}</option>`
+                  ).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Woning</label>
+                <select class="form-input" id="detailPropertyStatus" onchange="updatePropertyField('propertyStatus', this.value)">
+                  ${Object.entries(PROPERTY_STATUS_LABELS).map(([value, label]) =>
+                    `<option value="${value}" ${property.propertyStatus === value ? 'selected' : ''}>${label}</option>`
+                  ).join('')}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Scores -->
+          <div class="detail-section">
+            <div class="detail-section__title">Scores</div>
+            <div id="scoresContainer">
+              ${categories.map(cat => `
+                <div class="score-row">
+                  <span class="score-label">${CATEGORY_LABELS[cat] || cat}</span>
+                  <div class="score-stars">
+                    ${[1,2,3,4,5].map(n => `
+                      <button class="score-star ${property.scores[cat] >= n ? 'score-star--active' : ''}"
+                              onclick="updateScore('${cat}', ${n})">★</button>
+                    `).join('')}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+            <div class="add-category-row">
+              <input type="text" class="form-input" id="newCategoryInput" placeholder="Nieuwe categorie...">
+              <button class="btn btn--secondary btn--small" onclick="addNewCategory()">+</button>
+            </div>
+            <div class="score-average">
+              <span class="score-average__label">Gemiddeld</span>
+              <span class="score-average__value" id="avgScoreDisplay">
+                ${avgScore > 0 ? avgScore.toFixed(1) + ' / 5' : '-'}
+              </span>
+            </div>
+          </div>
+
+          <!-- Pros -->
+          <div class="detail-section">
+            <div class="detail-section__title">Pluspunten</div>
+            <textarea class="form-textarea" id="detailPros"
+                      onchange="updatePropertyField('pros', this.value)"
+                      placeholder="Wat zijn de positieve punten?">${escapeHtml(property.pros)}</textarea>
+          </div>
+
+          <!-- Cons -->
+          <div class="detail-section">
+            <div class="detail-section__title">Minpunten</div>
+            <textarea class="form-textarea" id="detailCons"
+                      onchange="updatePropertyField('cons', this.value)"
+                      placeholder="Wat zijn de negatieve punten?">${escapeHtml(property.cons)}</textarea>
+          </div>
+
+          <!-- Bids -->
+          <div class="detail-section">
+            <div class="detail-section__title">Biedingen</div>
+            <div id="bidsContainer">
+              ${property.bids.length === 0 ? '<p style="color: var(--color-gray-500); font-size: var(--font-size-sm);">Nog geen biedingen</p>' : ''}
+              ${property.bids.map((bid, index) => `
+                <div class="bid-item">
+                  <div>
+                    <div class="bid-amount">€${bid.amount.toLocaleString('nl-BE')}</div>
+                    <div class="bid-date">${formatDate(bid.date)}</div>
+                    <span class="bid-status bid-status--${bid.status}">${BID_STATUS_LABELS[bid.status]}</span>
+                    ${bid.notes ? `<div class="bid-notes">${escapeHtml(bid.notes)}</div>` : ''}
+                  </div>
+                  <button class="bid-delete" onclick="deleteBid(${index})">✕</button>
+                </div>
+              `).join('')}
+            </div>
+            <button class="btn btn--secondary btn--small" onclick="toggleAddBidForm()" id="addBidBtn">
+              + Bod toevoegen
+            </button>
+            <div class="add-bid-form" id="addBidForm" hidden>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Bedrag (€)</label>
+                <input type="number" class="form-input" id="bidAmount" placeholder="305000">
+              </div>
+              <div class="add-visit-row">
+                <input type="date" class="form-input" id="bidDate" value="${new Date().toISOString().split('T')[0]}">
+                <select class="form-input" id="bidStatus">
+                  <option value="gepland">Gepland</option>
+                  <option value="uitgebracht">Uitgebracht</option>
+                </select>
+              </div>
+              <input type="text" class="form-input" id="bidNotes" placeholder="Notities (optioneel)">
+              <div class="add-visit-row">
+                <button class="btn btn--secondary btn--small" onclick="toggleAddBidForm()">Annuleren</button>
+                <button class="btn btn--primary btn--small" onclick="addBid()">Toevoegen</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Visits -->
+          <div class="detail-section">
+            <div class="detail-section__title">Bezoeken</div>
+            <div id="visitsContainer">
+              ${property.visits.length === 0 ? '<p style="color: var(--color-gray-500); font-size: var(--font-size-sm);">Nog geen bezoeken</p>' : ''}
+              ${property.visits.map((visit, index) => `
+                <div class="visit-item">
+                  <div>
+                    <div class="visit-date">${formatDate(visit.date)}</div>
+                    ${visit.notes ? `<div class="visit-notes">${escapeHtml(visit.notes)}</div>` : ''}
+                  </div>
+                  <button class="visit-delete" onclick="deleteVisit(${index})">✕</button>
+                </div>
+              `).join('')}
+            </div>
+            <button class="btn btn--secondary btn--small" onclick="toggleAddVisitForm()" id="addVisitBtn">
+              + Bezoek toevoegen
+            </button>
+            <div class="add-visit-form" id="addVisitForm" hidden>
+              <div class="add-visit-row">
+                <input type="date" class="form-input" id="visitDate" value="${new Date().toISOString().split('T')[0]}">
+              </div>
+              <input type="text" class="form-input" id="visitNotes" placeholder="Notities (optioneel)">
+              <div class="add-visit-row">
+                <button class="btn btn--secondary btn--small" onclick="toggleAddVisitForm()">Annuleren</button>
+                <button class="btn btn--primary btn--small" onclick="addVisit()">Toevoegen</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      openModal(content, { full: true });
+
+      // Highlight marker on map
+      if (markers[id]) {
+        markers[id].openPopup();
+      }
+    }
+
+    // Format date for display
+    function formatDate(dateStr) {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('nl-BE', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+    }
+
+    // Update a single property field
+    function updatePropertyField(field, value) {
+      if (!currentPropertyId) return;
+      Store.updateProperty(currentPropertyId, { [field]: value });
+      renderApp();
+    }
+
+    // Update score for a category
+    function updateScore(category, value) {
+      if (!currentPropertyId) return;
+      const property = Store.getProperty(currentPropertyId);
+      const newScores = { ...property.scores, [category]: value };
+      Store.updateProperty(currentPropertyId, { scores: newScores });
+
+      // Update UI
+      const avgScore = Store.calculateAverageScore(Store.getProperty(currentPropertyId));
+      document.getElementById('avgScoreDisplay').textContent =
+        avgScore > 0 ? avgScore.toFixed(1) + ' / 5' : '-';
+
+      // Update stars
+      const scoresContainer = document.getElementById('scoresContainer');
+      const row = scoresContainer.querySelector(`.score-row:has([onclick*="${category}"])`);
+      if (row) {
+        row.querySelectorAll('.score-star').forEach((star, index) => {
+          star.classList.toggle('score-star--active', index < value);
+        });
+      }
+
+      renderApp();
+    }
+
+    // Add new category
+    function addNewCategory() {
+      const input = document.getElementById('newCategoryInput');
+      const name = input.value.trim();
+      if (!name) return;
+
+      Store.addCustomCategory(name);
+      input.value = '';
+
+      // Re-open detail to refresh
+      openPropertyDetail(currentPropertyId);
+    }
+
+    // Toggle add visit form
+    function toggleAddVisitForm() {
+      const form = document.getElementById('addVisitForm');
+      form.hidden = !form.hidden;
+    }
+
+    // Add visit
+    function addVisit() {
+      if (!currentPropertyId) return;
+      const property = Store.getProperty(currentPropertyId);
+      const date = document.getElementById('visitDate').value;
+      const notes = document.getElementById('visitNotes').value.trim();
+
+      if (!date) return;
+
+      const visits = [...property.visits, { date, notes }];
+      visits.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      Store.updateProperty(currentPropertyId, { visits });
+
+      // If first visit, update status to bezocht if still nieuw
+      if (property.status === 'nieuw' || property.status === 'bezoek_gepland') {
+        Store.updateProperty(currentPropertyId, { status: 'bezocht' });
+      }
+
+      // Re-open to refresh
+      openPropertyDetail(currentPropertyId);
+      renderApp();
+    }
+
+    // Delete visit
+    function deleteVisit(index) {
+      if (!currentPropertyId) return;
+      const property = Store.getProperty(currentPropertyId);
+      const visits = property.visits.filter((_, i) => i !== index);
+      Store.updateProperty(currentPropertyId, { visits });
+      openPropertyDetail(currentPropertyId);
+    }
+
+    // Toggle add bid form
+    function toggleAddBidForm() {
+      const form = document.getElementById('addBidForm');
+      form.hidden = !form.hidden;
+    }
+
+    // Add bid
+    function addBid() {
+      if (!currentPropertyId) return;
+      const property = Store.getProperty(currentPropertyId);
+      const amount = parseInt(document.getElementById('bidAmount').value);
+      const date = document.getElementById('bidDate').value;
+      const status = document.getElementById('bidStatus').value;
+      const notes = document.getElementById('bidNotes').value.trim();
+
+      if (!amount || !date) return;
+
+      const bids = [...property.bids, { amount, date, status, notes }];
+      // Sort by date (newest first)
+      bids.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      Store.updateProperty(currentPropertyId, { bids });
+
+      // Re-open to refresh
+      openPropertyDetail(currentPropertyId);
+      renderApp();
+    }
+
+    // Delete bid
+    function deleteBid(index) {
+      if (!currentPropertyId) return;
+      const property = Store.getProperty(currentPropertyId);
+      const bids = property.bids.filter((_, i) => i !== index);
+      Store.updateProperty(currentPropertyId, { bids });
+      openPropertyDetail(currentPropertyId);
+    }
+
+    // Confirm delete property
+    function confirmDeleteProperty(id) {
+      if (confirm('Weet je zeker dat je deze woning wilt verwijderen?')) {
+        Store.deleteProperty(id);
+        closeModal();
+        renderApp();
+      }
     }
 
     // ============================================

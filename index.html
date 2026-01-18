@@ -307,7 +307,202 @@
           crossorigin=""></script>
 
   <script>
-    // JavaScript goes here
+    // ============================================
+    // DATA STORE
+    // ============================================
+
+    const STORAGE_KEY = 'propertyHunter';
+    const DEFAULT_CATEGORIES = ['locatie', 'energie', 'staat', 'prijs', 'grootte', 'buitenruimte'];
+    const CATEGORY_LABELS = {
+      locatie: 'Locatie',
+      energie: 'Energie',
+      staat: 'Staat',
+      prijs: 'Prijs',
+      grootte: 'Grootte',
+      buitenruimte: 'Buitenruimte'
+    };
+
+    const STATUS_LABELS = {
+      nieuw: 'Nieuw',
+      bezoek_gepland: 'Bezoek gepland',
+      bezocht: 'Bezocht',
+      ja: 'Ja',
+      nee: 'Nee',
+      misschien: 'Misschien'
+    };
+
+    const PROPERTY_STATUS_LABELS = {
+      beschikbaar: 'Beschikbaar',
+      onder_optie: 'Onder optie',
+      verkocht: 'Verkocht'
+    };
+
+    const BID_STATUS_LABELS = {
+      gepland: 'Gepland',
+      uitgebracht: 'Uitgebracht'
+    };
+
+    // Generate UUID
+    function generateId() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
+    // Data store
+    const Store = {
+      data: {
+        version: 1,
+        customCategories: [],
+        properties: []
+      },
+
+      // Load from LocalStorage
+      load() {
+        try {
+          const stored = localStorage.getItem(STORAGE_KEY);
+          if (stored) {
+            this.data = JSON.parse(stored);
+          }
+        } catch (e) {
+          console.error('Failed to load data:', e);
+        }
+        return this.data;
+      },
+
+      // Save to LocalStorage
+      save() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+        } catch (e) {
+          console.error('Failed to save data:', e);
+        }
+      },
+
+      // Get all properties
+      getProperties() {
+        return this.data.properties;
+      },
+
+      // Get single property by ID
+      getProperty(id) {
+        return this.data.properties.find(p => p.id === id);
+      },
+
+      // Add new property
+      addProperty(property) {
+        const newProperty = {
+          id: generateId(),
+          url: property.url || '',
+          address: property.address || '',
+          price: property.price || 0,
+          coordinates: property.coordinates || { lat: 0, lng: 0 },
+          status: 'nieuw',
+          propertyStatus: 'beschikbaar',
+          scores: this.getEmptyScores(),
+          pros: '',
+          cons: '',
+          visits: [],
+          bids: [],
+          dateAdded: new Date().toISOString()
+        };
+        this.data.properties.push(newProperty);
+        this.save();
+        return newProperty;
+      },
+
+      // Update property
+      updateProperty(id, updates) {
+        const index = this.data.properties.findIndex(p => p.id === id);
+        if (index !== -1) {
+          this.data.properties[index] = { ...this.data.properties[index], ...updates };
+          this.save();
+          return this.data.properties[index];
+        }
+        return null;
+      },
+
+      // Delete property
+      deleteProperty(id) {
+        const index = this.data.properties.findIndex(p => p.id === id);
+        if (index !== -1) {
+          this.data.properties.splice(index, 1);
+          this.save();
+          return true;
+        }
+        return false;
+      },
+
+      // Get empty scores object
+      getEmptyScores() {
+        const scores = {};
+        DEFAULT_CATEGORIES.forEach(cat => scores[cat] = 0);
+        this.data.customCategories.forEach(cat => scores[cat] = 0);
+        return scores;
+      },
+
+      // Get all categories (default + custom)
+      getAllCategories() {
+        return [...DEFAULT_CATEGORIES, ...this.data.customCategories];
+      },
+
+      // Add custom category
+      addCustomCategory(name) {
+        const key = name.toLowerCase().replace(/\s+/g, '_');
+        if (!this.data.customCategories.includes(key)) {
+          this.data.customCategories.push(key);
+          CATEGORY_LABELS[key] = name;
+          // Add to all existing properties
+          this.data.properties.forEach(p => {
+            if (!p.scores[key]) p.scores[key] = 0;
+          });
+          this.save();
+        }
+        return key;
+      },
+
+      // Calculate average score for a property
+      calculateAverageScore(property) {
+        const scores = Object.values(property.scores).filter(s => s > 0);
+        if (scores.length === 0) return 0;
+        return scores.reduce((sum, s) => sum + s, 0) / scores.length;
+      },
+
+      // Export data as JSON string
+      exportData() {
+        return JSON.stringify(this.data, null, 2);
+      },
+
+      // Import data from JSON string
+      importData(jsonString) {
+        try {
+          const imported = JSON.parse(jsonString);
+          if (imported.version && imported.properties) {
+            this.data = imported;
+            this.save();
+            return true;
+          }
+        } catch (e) {
+          console.error('Failed to import data:', e);
+        }
+        return false;
+      },
+
+      // Clear all data
+      clear() {
+        this.data = {
+          version: 1,
+          customCategories: [],
+          properties: []
+        };
+        this.save();
+      }
+    };
+
+    // Initialize store on load
+    Store.load();
   </script>
 </body>
 </html>

@@ -898,6 +898,64 @@
       padding: 0 var(--spacing-md);
       font-size: var(--font-size-sm);
     }
+
+    /* Menu dropdown */
+    .menu-dropdown {
+      position: absolute;
+      top: var(--header-height);
+      right: 0;
+      background: white;
+      border-radius: 0 0 var(--radius-md) var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      min-width: 200px;
+      z-index: 100;
+    }
+
+    .menu-dropdown[hidden] {
+      display: none;
+    }
+
+    .menu-item {
+      display: block;
+      width: 100%;
+      padding: var(--spacing-md);
+      background: none;
+      border: none;
+      text-align: left;
+      font-size: var(--font-size-base);
+      cursor: pointer;
+      color: var(--color-gray-700);
+    }
+
+    .menu-item:hover {
+      background: var(--color-gray-50);
+    }
+
+    .menu-item:active {
+      background: var(--color-gray-100);
+    }
+
+    /* Import modal */
+    .import-warning {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--spacing-sm);
+      padding: var(--spacing-md);
+      background: #fef3c7;
+      border-radius: var(--radius-md);
+      margin-bottom: var(--spacing-md);
+      color: #92400e;
+    }
+
+    .import-warning__icon {
+      font-size: var(--font-size-lg);
+    }
+
+    .import-or {
+      text-align: center;
+      color: var(--color-gray-500);
+      margin: var(--spacing-md) 0;
+    }
   </style>
 </head>
 <body>
@@ -909,6 +967,12 @@
         <span>☰</span>
       </button>
     </header>
+
+    <!-- Menu dropdown -->
+    <div class="menu-dropdown" id="menuDropdown" hidden>
+      <button class="menu-item" onclick="exportData()">📤 Exporteren</button>
+      <button class="menu-item" onclick="openImportModal()">📥 Importeren</button>
+    </div>
 
     <!-- Main content -->
     <main class="main">
@@ -2021,6 +2085,132 @@
 
     // Add button click handler
     document.getElementById('addBtn').addEventListener('click', openAddPropertyStep1);
+
+    // ============================================
+    // IMPORT / EXPORT
+    // ============================================
+
+    // Toggle menu dropdown
+    document.getElementById('menuBtn').addEventListener('click', () => {
+      const dropdown = document.getElementById('menuDropdown');
+      dropdown.hidden = !dropdown.hidden;
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+      const dropdown = document.getElementById('menuDropdown');
+      const menuBtn = document.getElementById('menuBtn');
+      if (!dropdown.contains(e.target) && !menuBtn.contains(e.target)) {
+        dropdown.hidden = true;
+      }
+    });
+
+    // Export data
+    async function exportData() {
+      document.getElementById('menuDropdown').hidden = true;
+
+      const data = Store.exportData();
+      const filename = `property-hunter-${new Date().toISOString().split('T')[0]}.json`;
+      const blob = new Blob([data], { type: 'application/json' });
+
+      // Try Web Share API first (mobile)
+      if (navigator.share && navigator.canShare) {
+        const file = new File([blob], filename, { type: 'application/json' });
+        const shareData = { files: [file] };
+
+        if (navigator.canShare(shareData)) {
+          try {
+            await navigator.share(shareData);
+            return;
+          } catch (e) {
+            // User cancelled or share failed, fall through to download
+            if (e.name !== 'AbortError') {
+              console.log('Share failed, falling back to download');
+            }
+          }
+        }
+      }
+
+      // Fallback: download file
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // Open import modal
+    function openImportModal() {
+      document.getElementById('menuDropdown').hidden = true;
+
+      const content = `
+        <div class="modal__header">
+          <span class="modal__title">Importeren</span>
+          <button class="modal__close" onclick="closeModal()">×</button>
+        </div>
+        <div class="modal__body">
+          <div class="import-warning">
+            <span class="import-warning__icon">⚠️</span>
+            <div>
+              <strong>Let op:</strong> Importeren overschrijft al je huidige data!
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Kies een bestand</label>
+            <input type="file" class="form-input" id="importFile" accept=".json">
+          </div>
+
+          <div class="import-or">— of —</div>
+
+          <div class="form-group">
+            <label class="form-label">Plak JSON</label>
+            <textarea class="form-textarea" id="importText" placeholder='{"version": 1, "properties": [...]}'></textarea>
+          </div>
+        </div>
+        <div class="modal__footer">
+          <button class="btn btn--primary btn--large" id="importBtn">Importeren</button>
+        </div>
+      `;
+
+      openModal(content);
+
+      // Import button handler
+      document.getElementById('importBtn').addEventListener('click', handleImport);
+
+      // File input handler
+      document.getElementById('importFile').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            document.getElementById('importText').value = event.target.result;
+          };
+          reader.readAsText(file);
+        }
+      });
+    }
+
+    // Handle import
+    function handleImport() {
+      const text = document.getElementById('importText').value.trim();
+
+      if (!text) {
+        alert('Geen data om te importeren');
+        return;
+      }
+
+      if (Store.importData(text)) {
+        closeModal();
+        renderApp();
+        alert('Data succesvol geïmporteerd!');
+      } else {
+        alert('Ongeldige data. Controleer het formaat.');
+      }
+    }
   </script>
 </body>
 </html>

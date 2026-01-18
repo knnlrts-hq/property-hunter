@@ -2203,6 +2203,10 @@
         return;
       }
 
+      if (!confirm('Weet je zeker dat je alle huidige data wilt vervangen?')) {
+        return;
+      }
+
       if (Store.importData(text)) {
         closeModal();
         renderApp();

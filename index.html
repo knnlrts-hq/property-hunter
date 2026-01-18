@@ -1247,6 +1247,9 @@
     // Close modal
     function closeModal() {
       if (activeModal) {
+        // Clean up any add property map
+        cleanupAddPropertyMap();
+
         activeModal.remove();
         activeModal = null;
         document.body.style.overflow = '';
@@ -1265,6 +1268,16 @@
     let addPropertyData = {};
     let addPropertyMap = null;
     let addPropertyMarker = null;
+
+    // Clean up add property map
+    function cleanupAddPropertyMap() {
+      if (addPropertyMap) {
+        addPropertyMap.remove();
+        addPropertyMap = null;
+      }
+      addPropertyMarker = null;
+      addPropertyData = {};
+    }
 
     // Open add property modal (Step 1)
     function openAddPropertyStep1() {
@@ -1385,9 +1398,7 @@
       renderApp();
 
       // Clean up
-      addPropertyMap = null;
-      addPropertyMarker = null;
-      addPropertyData = {};
+      cleanupAddPropertyMap();
 
       // Highlight new property (optional: could open detail)
       setTimeout(() => {

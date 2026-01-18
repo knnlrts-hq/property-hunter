@@ -372,6 +372,51 @@
       font-size: 48px;
       margin-bottom: var(--spacing-md);
     }
+
+    /* Filters */
+    .filter-group {
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .filter-label {
+      display: block;
+      font-size: var(--font-size-sm);
+      color: var(--color-gray-500);
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .filter-select {
+      width: 100%;
+      height: var(--touch-target);
+      padding: 0 var(--spacing-md);
+      border: 1px solid var(--color-gray-300);
+      border-radius: var(--radius-md);
+      font-size: var(--font-size-base);
+      background: white;
+      cursor: pointer;
+    }
+
+    .filter-select:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+
+    .btn--text {
+      background: none;
+      color: var(--color-primary);
+      padding: 0;
+      height: auto;
+      font-size: var(--font-size-sm);
+    }
+
+    .btn--text:hover {
+      text-decoration: underline;
+    }
+
+    .filters__toggle--active {
+      background: var(--color-primary);
+      color: white;
+    }
   </style>
 </head>
 <body>
@@ -400,7 +445,37 @@
           </div>
           <button class="filters__toggle" id="filterToggle">Filters ▼</button>
           <div class="filters__panel" id="filterPanel" hidden>
-            <!-- Filter dropdowns go here -->
+            <div class="filter-group">
+              <label class="filter-label">Status:</label>
+              <select id="filterStatus" class="filter-select">
+                <option value="">Alle</option>
+                <option value="nieuw">Nieuw</option>
+                <option value="bezoek_gepland">Bezoek gepland</option>
+                <option value="bezocht">Bezocht</option>
+                <option value="ja">Ja</option>
+                <option value="nee">Nee</option>
+                <option value="misschien">Misschien</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Woning:</label>
+              <select id="filterPropertyStatus" class="filter-select">
+                <option value="">Alle</option>
+                <option value="beschikbaar">Beschikbaar</option>
+                <option value="onder_optie">Onder optie</option>
+                <option value="verkocht">Verkocht</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Sorteren:</label>
+              <select id="filterSort" class="filter-select">
+                <option value="score">Score (hoog → laag)</option>
+                <option value="price_asc">Prijs (laag → hoog)</option>
+                <option value="price_desc">Prijs (hoog → laag)</option>
+                <option value="date">Datum toegevoegd</option>
+              </select>
+            </div>
+            <button class="btn btn--text" id="clearFilters">Filters wissen</button>
           </div>
         </div>
 
@@ -806,14 +881,150 @@
 
     // Initial render
     function renderApp() {
-      const properties = Store.getProperties();
-      renderPropertyList(properties);
-      renderMarkers(properties);
+      applyFilters();
+    }
+
+    // ============================================
+    // FILTERING & SEARCH
+    // ============================================
+
+    let currentFilters = {
+      search: '',
+      status: '',
+      propertyStatus: '',
+      sort: 'score'
+    };
+
+    // Filter and sort properties
+    function filterProperties(properties) {
+      let filtered = [...properties];
+
+      // Text search
+      if (currentFilters.search) {
+        const search = currentFilters.search.toLowerCase();
+        filtered = filtered.filter(p =>
+          p.address.toLowerCase().includes(search) ||
+          p.pros.toLowerCase().includes(search) ||
+          p.cons.toLowerCase().includes(search) ||
+          p.visits.some(v => v.notes.toLowerCase().includes(search))
+        );
+      }
+
+      // Status filter
+      if (currentFilters.status) {
+        filtered = filtered.filter(p => p.status === currentFilters.status);
+      }
+
+      // Property status filter
+      if (currentFilters.propertyStatus) {
+        filtered = filtered.filter(p => p.propertyStatus === currentFilters.propertyStatus);
+      }
+
+      // Sorting
+      switch (currentFilters.sort) {
+        case 'score':
+          filtered.sort((a, b) => Store.calculateAverageScore(b) - Store.calculateAverageScore(a));
+          break;
+        case 'price_asc':
+          filtered.sort((a, b) => a.price - b.price);
+          break;
+        case 'price_desc':
+          filtered.sort((a, b) => b.price - a.price);
+          break;
+        case 'date':
+          filtered.sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
+          break;
+      }
+
+      return filtered;
+    }
+
+    // Apply filters and re-render
+    function applyFilters() {
+      const allProperties = Store.getProperties();
+      const filtered = filterProperties(allProperties);
+      renderPropertyList(filtered);
+      renderMarkers(filtered);
+      updateFilterToggleState();
+    }
+
+    // Update filter toggle button state
+    function updateFilterToggleState() {
+      const toggle = document.getElementById('filterToggle');
+      const activeCount = [currentFilters.status, currentFilters.propertyStatus]
+        .filter(f => f !== '').length;
+
+      if (activeCount > 0) {
+        toggle.textContent = `Filters (${activeCount}) ▼`;
+        toggle.classList.add('filters__toggle--active');
+      } else {
+        toggle.textContent = 'Filters ▼';
+        toggle.classList.remove('filters__toggle--active');
+      }
+    }
+
+    // Clear all filters
+    function clearFilters() {
+      currentFilters = {
+        search: '',
+        status: '',
+        propertyStatus: '',
+        sort: 'score'
+      };
+
+      document.getElementById('searchInput').value = '';
+      document.getElementById('filterStatus').value = '';
+      document.getElementById('filterPropertyStatus').value = '';
+      document.getElementById('filterSort').value = 'score';
+
+      applyFilters();
+    }
+
+    // Initialize filter event listeners
+    function initFilters() {
+      // Search input
+      const searchInput = document.getElementById('searchInput');
+      searchInput.addEventListener('input', (e) => {
+        currentFilters.search = e.target.value;
+        applyFilters();
+      });
+
+      // Filter toggle
+      const filterToggle = document.getElementById('filterToggle');
+      const filterPanel = document.getElementById('filterPanel');
+      filterToggle.addEventListener('click', () => {
+        const isHidden = filterPanel.hidden;
+        filterPanel.hidden = !isHidden;
+        filterToggle.textContent = filterToggle.textContent.replace(
+          isHidden ? '▼' : '▲',
+          isHidden ? '▲' : '▼'
+        );
+      });
+
+      // Filter dropdowns
+      document.getElementById('filterStatus').addEventListener('change', (e) => {
+        currentFilters.status = e.target.value;
+        applyFilters();
+      });
+
+      document.getElementById('filterPropertyStatus').addEventListener('change', (e) => {
+        currentFilters.propertyStatus = e.target.value;
+        applyFilters();
+      });
+
+      document.getElementById('filterSort').addEventListener('change', (e) => {
+        currentFilters.sort = e.target.value;
+        applyFilters();
+      });
+
+      // Clear filters
+      document.getElementById('clearFilters').addEventListener('click', clearFilters);
     }
 
     // Update DOMContentLoaded
     document.addEventListener('DOMContentLoaded', function() {
       initMap();
+      initFilters();
       renderApp();
     });
   </script>

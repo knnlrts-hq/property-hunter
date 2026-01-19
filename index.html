@@ -2221,14 +2221,13 @@
     let addPropertyMap = null;
     let addPropertyMarker = null;
 
-    // Clean up add property map
+    // Clean up add property map (only Leaflet objects, not form data)
     function cleanupAddPropertyMap() {
       if (addPropertyMap) {
         addPropertyMap.remove();
         addPropertyMap = null;
       }
       addPropertyMarker = null;
-      addPropertyData = {};
     }
 
     // Open add property modal (Step 1)

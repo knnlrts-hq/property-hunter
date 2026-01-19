@@ -103,6 +103,16 @@
     .header__title {
       font-size: var(--font-size-lg);
       font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .header__title:hover {
+      opacity: 0.8;
+    }
+
+    .header__title:active {
+      opacity: 0.6;
     }
 
     .header__menu-btn {
@@ -153,6 +163,25 @@
       flex-direction: column;
       overflow: hidden;
       background: white;
+      transition: flex 0.3s ease;
+    }
+
+    /* Foldable map */
+    .map-container {
+      transition: height 0.3s ease, width 0.3s ease, opacity 0.2s ease;
+    }
+
+    .map-container--hidden {
+      height: 0 !important;
+      opacity: 0;
+      overflow: hidden;
+    }
+
+    @media (min-width: 768px) {
+      .map-container--hidden {
+        width: 0 !important;
+        height: 100% !important;
+      }
     }
 
     .filters {
@@ -180,14 +209,45 @@
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
     }
 
+    .filters__row {
+      display: flex;
+      gap: var(--spacing-sm);
+    }
+
     .filters__toggle {
-      width: 100%;
+      flex: 1;
       height: var(--touch-target);
       background: var(--color-gray-100);
       border: 1px solid var(--color-gray-200);
       border-radius: var(--radius-md);
       font-size: var(--font-size-base);
       cursor: pointer;
+    }
+
+    .filters__map-toggle {
+      height: var(--touch-target);
+      padding: 0 var(--spacing-md);
+      background: var(--color-gray-100);
+      border: 1px solid var(--color-gray-200);
+      border-radius: var(--radius-md);
+      font-size: var(--font-size-sm);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background-color 0.2s, color 0.2s;
+    }
+
+    .filters__map-toggle:hover {
+      background: var(--color-gray-200);
+    }
+
+    .filters__map-toggle--active {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+    }
+
+    .filters__map-toggle--active:hover {
+      background: var(--color-primary-dark);
     }
 
     .filters__panel {
@@ -1123,7 +1183,7 @@
   <div id="app">
     <!-- Header -->
     <header class="header">
-      <h1 class="header__title">Property Hunter</h1>
+      <h1 class="header__title" id="headerTitle" role="button" tabindex="0" title="Terug naar overzicht">Property Hunter</h1>
       <button class="header__menu-btn" id="menuBtn" aria-label="Menu">
         <span>☰</span>
       </button>
@@ -1149,7 +1209,10 @@
           <div class="filters__search">
             <input type="text" id="searchInput" placeholder="🔍 Zoeken..." class="search-input">
           </div>
-          <button class="filters__toggle" id="filterToggle">Filters ▼</button>
+          <div class="filters__row">
+            <button class="filters__map-toggle" id="mapToggle">🗺️ Kaart verbergen</button>
+            <button class="filters__toggle" id="filterToggle">Filters ▼</button>
+          </div>
           <div class="filters__panel" id="filterPanel" hidden>
             <div class="filter-group">
               <label class="filter-label">Status:</label>
@@ -2191,10 +2254,184 @@
       document.getElementById('clearFilters').addEventListener('click', clearFilters);
     }
 
+    // ============================================
+    // GIST DATA LOADING
+    // ============================================
+
+    const GIST_URL = 'https://gist.githubusercontent.com/knnlrts-hq/e78971e9be2cef060139dc63b57f5518/raw/property-hunter.json';
+
+    async function loadAndMergeGistData() {
+      try {
+        // Fetch with cache busting
+        const cacheBuster = Date.now();
+        const response = await fetch(`${GIST_URL}?t=${cacheBuster}`, {
+          cache: 'no-store'
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const gistData = await response.json();
+
+        // Validate gist data structure
+        if (!gistData || !Array.isArray(gistData.properties)) {
+          throw new Error('Invalid gist data format');
+        }
+
+        // Merge gist data with localStorage
+        mergeGistWithLocal(gistData);
+
+      } catch (error) {
+        console.error('Failed to load gist data:', error);
+        showToast('Kon online data niet laden');
+      }
+    }
+
+    function mergeGistWithLocal(gistData) {
+      const localProperties = Store.getProperties();
+      const localIds = new Set(localProperties.map(p => p.id));
+
+      // Track how many new properties were added
+      let newCount = 0;
+
+      // Add gist properties that don't exist locally
+      for (const gistProp of gistData.properties) {
+        if (gistProp.id && !localIds.has(gistProp.id)) {
+          // Normalize the gist property before adding
+          const normalizedProp = {
+            id: gistProp.id,
+            url: gistProp.url || '',
+            address: formatAddress(gistProp.address),
+            price: parseEuroInput(gistProp.price),
+            imageUrl: gistProp.imageUrl || '',
+            coordinates: gistProp.coordinates || { lat: 0, lng: 0 },
+            pros: gistProp.pros || '',
+            cons: gistProp.cons || '',
+            visits: Array.isArray(gistProp.visits) ? gistProp.visits : [],
+            bids: Array.isArray(gistProp.bids) ? gistProp.bids : [],
+            scores: gistProp.scores && typeof gistProp.scores === 'object' ? gistProp.scores : Store.getEmptyScores(),
+            status: gistProp.status || 'nieuw',
+            propertyStatus: gistProp.propertyStatus || 'beschikbaar',
+            dateAdded: gistProp.dateAdded || new Date().toISOString()
+          };
+
+          Store.data.properties.push(normalizedProp);
+          newCount++;
+        }
+      }
+
+      // Merge custom categories from gist
+      if (Array.isArray(gistData.customCategories)) {
+        for (const cat of gistData.customCategories) {
+          if (!Store.data.customCategories.includes(cat)) {
+            Store.data.customCategories.push(cat);
+          }
+        }
+      }
+
+      // Save merged data
+      if (newCount > 0 || (gistData.customCategories && gistData.customCategories.length > 0)) {
+        Store.save();
+      }
+    }
+
+    // ============================================
+    // MAP TOGGLE (FOLDABLE MAP)
+    // ============================================
+
+    let isMapHidden = false;
+
+    function initMapToggle() {
+      // Restore state from sessionStorage
+      const savedState = sessionStorage.getItem('propertyHunterMapHidden');
+      if (savedState === 'true') {
+        isMapHidden = true;
+        applyMapVisibility();
+      }
+
+      const toggleBtn = document.getElementById('mapToggle');
+      toggleBtn.addEventListener('click', toggleMapVisibility);
+    }
+
+    function toggleMapVisibility() {
+      isMapHidden = !isMapHidden;
+      sessionStorage.setItem('propertyHunterMapHidden', isMapHidden);
+      applyMapVisibility();
+    }
+
+    function applyMapVisibility() {
+      const mapContainer = document.querySelector('.map-container');
+      const toggleBtn = document.getElementById('mapToggle');
+
+      if (isMapHidden) {
+        mapContainer.classList.add('map-container--hidden');
+        toggleBtn.textContent = '🗺️ Kaart tonen';
+        toggleBtn.classList.add('filters__map-toggle--active');
+      } else {
+        mapContainer.classList.remove('map-container--hidden');
+        toggleBtn.textContent = '🗺️ Kaart verbergen';
+        toggleBtn.classList.remove('filters__map-toggle--active');
+        // Invalidate map size after transition
+        setTimeout(() => {
+          if (map) map.invalidateSize();
+        }, 350);
+      }
+    }
+
+    // ============================================
+    // HEADER CLICK (RETURN TO HOME)
+    // ============================================
+
+    function initHeaderClick() {
+      const headerTitle = document.getElementById('headerTitle');
+
+      headerTitle.addEventListener('click', returnToHome);
+      headerTitle.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          returnToHome();
+        }
+      });
+    }
+
+    function returnToHome() {
+      // Close any open modal
+      closeModal();
+
+      // Close menu dropdown
+      document.getElementById('menuDropdown').hidden = true;
+
+      // Clear filters and search
+      clearFilters();
+
+      // Reset map to default view
+      if (map) {
+        map.setView(MAP_CONFIG.center, MAP_CONFIG.zoom);
+      }
+
+      // Show map if hidden
+      if (isMapHidden) {
+        toggleMapVisibility();
+      }
+
+      // Scroll property list to top
+      const propertyList = document.getElementById('propertyList');
+      if (propertyList) {
+        propertyList.scrollTop = 0;
+      }
+    }
+
     // Update DOMContentLoaded
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', async function() {
       initMap();
       initFilters();
+      initMapToggle();
+      initHeaderClick();
+
+      // Load data from gist and merge with localStorage
+      await loadAndMergeGistData();
+
       renderApp();
     });
 

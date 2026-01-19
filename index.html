@@ -2009,6 +2009,7 @@
         url: '',
         address: '',
         price: '',
+        imageUrl: '',
         coordinates: null
       };
 
@@ -2030,6 +2031,11 @@
           <div class="form-group">
             <label class="form-label">Prijs (€)</label>
             <input type="number" class="form-input" id="addPrice" placeholder="250000">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Afbeelding URL</label>
+            <input type="url" class="form-input" id="addImageUrl" placeholder="https://...jpg">
+            <p class="form-hint">Optioneel - kopieer afbeelding-URL van de advertentie</p>
           </div>
         </div>
         <div class="modal__footer">
@@ -2053,6 +2059,7 @@
         addPropertyData.url = document.getElementById('addUrl').value.trim();
         addPropertyData.address = address;
         addPropertyData.price = parseInt(document.getElementById('addPrice').value) || 0;
+        addPropertyData.imageUrl = document.getElementById('addImageUrl').value.trim();
 
         openAddPropertyStep2();
       });
@@ -2115,6 +2122,7 @@
         url: addPropertyData.url,
         address: addPropertyData.address,
         price: addPropertyData.price,
+        imageUrl: addPropertyData.imageUrl,
         coordinates: addPropertyData.coordinates
       });
 

@@ -361,6 +361,34 @@
       color: var(--color-gray-700);
     }
 
+    /* Property card with image layout */
+    .property-card {
+      display: flex;
+      gap: var(--spacing-md);
+    }
+
+    .property-card__content {
+      flex: 1;
+      min-width: 0; /* Prevent flex child overflow */
+    }
+
+    .property-card__image {
+      width: 80px;
+      height: 80px;
+      border-radius: var(--radius-sm);
+      object-fit: cover;
+      flex-shrink: 0;
+      background: var(--color-gray-100);
+    }
+
+    .property-card__image--placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-gray-400);
+      font-size: 24px;
+    }
+
     /* Empty state */
     .empty-state {
       text-align: center;
@@ -630,6 +658,14 @@
 
     .detail-link:hover {
       text-decoration: underline;
+    }
+
+    .detail-image {
+      width: 100%;
+      max-height: 200px;
+      object-fit: cover;
+      border-radius: var(--radius-md);
+      margin-bottom: var(--spacing-md);
     }
 
     .detail-section {
@@ -1425,9 +1461,19 @@
         <div class="modal__body">
           <!-- Header -->
           <div class="detail-header">
+            ${property.imageUrl ? `<img src="${escapeHtml(property.imageUrl)}" alt="" class="detail-image">` : ''}
             <div class="detail-address">${escapeHtml(property.address)}</div>
             <div class="detail-price">€${property.price.toLocaleString('nl-BE')}</div>
             ${property.url ? `<a href="${escapeHtml(property.url)}" target="_blank" class="detail-link">🔗 Bekijk advertentie</a>` : ''}
+          </div>
+
+          <!-- Image URL -->
+          <div class="detail-section">
+            <div class="detail-section__title">Afbeelding</div>
+            <input type="url" class="form-input" id="detailImageUrl"
+                   value="${escapeHtml(property.imageUrl || '')}"
+                   onchange="updatePropertyField('imageUrl', this.value)"
+                   placeholder="https://...jpg">
           </div>
 
           <!-- Status -->
@@ -1742,15 +1788,22 @@
            </span>`
         : '<span class="property-card__score property-card__score-value">Niet beoordeeld</span>';
 
+      const imageHtml = property.imageUrl
+        ? `<img src="${escapeHtml(property.imageUrl)}" alt="" class="property-card__image" loading="lazy">`
+        : `<div class="property-card__image property-card__image--placeholder">🏠</div>`;
+
       return `
         <div class="property-card" data-id="${property.id}">
-          <div class="property-card__address">${escapeHtml(property.address)}</div>
-          <div class="property-card__price">€${property.price.toLocaleString('nl-BE')}</div>
-          <div class="property-card__badges">
-            <span class="badge badge--${property.status}">${STATUS_LABELS[property.status]}</span>
-            <span class="badge badge--${property.propertyStatus}">${PROPERTY_STATUS_LABELS[property.propertyStatus]}</span>
+          <div class="property-card__content">
+            <div class="property-card__address">${escapeHtml(property.address)}</div>
+            <div class="property-card__price">€${property.price.toLocaleString('nl-BE')}</div>
+            <div class="property-card__badges">
+              <span class="badge badge--${property.status}">${STATUS_LABELS[property.status]}</span>
+              <span class="badge badge--${property.propertyStatus}">${PROPERTY_STATUS_LABELS[property.propertyStatus]}</span>
+            </div>
+            ${scoreDisplay}
           </div>
-          ${scoreDisplay}
+          ${imageHtml}
         </div>
       `;
     }

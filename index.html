@@ -1567,6 +1567,11 @@
 
           <!-- Status -->
           <div class="detail-section">
+            <div class="detail-section__title">Status</div>
+            <div class="detail-section__badges" style="margin-bottom: var(--spacing-sm);">
+              <span class="badge badge--${property.status}">${STATUS_ICONS[property.status]} ${STATUS_LABELS[property.status]}</span>
+              <span class="badge badge--${property.propertyStatus}">${PROPERTY_STATUS_ICONS[property.propertyStatus]} ${PROPERTY_STATUS_LABELS[property.propertyStatus]}</span>
+            </div>
             <div class="detail-status-row">
               <div class="form-group">
                 <label class="form-label">Status</label>
@@ -1907,8 +1912,8 @@
             <div class="property-card__address">${escapeHtml(property.address)}</div>
             <div class="property-card__price">€${property.price.toLocaleString('nl-BE')}</div>
             <div class="property-card__badges">
-              <span class="badge badge--${property.status}">${STATUS_LABELS[property.status]}</span>
-              <span class="badge badge--${property.propertyStatus}">${PROPERTY_STATUS_LABELS[property.propertyStatus]}</span>
+              <span class="badge badge--${property.status}">${STATUS_ICONS[property.status]} ${STATUS_LABELS[property.status]}</span>
+              <span class="badge badge--${property.propertyStatus}">${PROPERTY_STATUS_ICONS[property.propertyStatus]} ${PROPERTY_STATUS_LABELS[property.propertyStatus]}</span>
             </div>
             ${scoreDisplay}
           </div>

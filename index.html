@@ -96,8 +96,6 @@
       background: var(--color-primary);
       color: white;
       flex-shrink: 0;
-      position: relative;
-      z-index: 2000; /* above leaflet controls */
     }
 
     .header__title {
@@ -305,11 +303,6 @@
       background: var(--color-gray-500) !important;
       opacity: 0.3;
     }
-
-    /* Map popup styles */
-    .popup-address { font-weight: 700; margin-bottom: 2px; }
-    .popup-price { margin-bottom: 4px; }
-    .popup-score { color: var(--color-gray-500); font-size: var(--font-size-sm); }
 
     /* Property cards */
     .property-card {
@@ -733,7 +726,7 @@
     .score-row {
       display: flex;
       align-items: center;
-      gap: var(--spacing-sm);
+      justify-content: space-between;
       padding: var(--spacing-sm) 0;
       border-bottom: 1px solid var(--color-gray-100);
     }
@@ -743,15 +736,7 @@
     }
 
     .score-label {
-      flex: 1;
-      min-width: 0;
       font-size: var(--font-size-base);
-    }
-
-    .score-row__right {
-      display: flex;
-      align-items: center;
-      gap: var(--spacing-xs);
     }
 
     .score-stars {
@@ -791,16 +776,8 @@
       transition: opacity 0.2s;
     }
 
-    .score-row__delete--placeholder {
-      visibility: hidden;
-    }
-
     .score-row:hover .score-row__delete {
       opacity: 1;
-    }
-
-    .score-row:hover .score-row__delete--placeholder {
-      opacity: 0;
     }
 
     .score-row__delete:hover {
@@ -1011,14 +988,14 @@
 
     /* Menu dropdown */
     .menu-dropdown {
-      position: fixed;
+      position: absolute;
       top: var(--header-height);
       right: 0;
       background: white;
       border-radius: 0 0 var(--radius-md) var(--radius-md);
       box-shadow: var(--shadow-lg);
       min-width: 200px;
-      z-index: 2000;
+      z-index: 100;
     }
 
     .menu-dropdown[hidden] {
@@ -1316,8 +1293,8 @@
         const newProperty = {
           id: generateId(),
           url: property.url || '',
-          address: formatAddress(property.address),
-          price: parseEuroInput(property.price),
+          address: property.address || '',
+          price: property.price || 0,
           imageUrl: property.imageUrl || '',
           coordinates: property.coordinates || { lat: 0, lng: 0 },
           status: 'nieuw',
@@ -1506,13 +1483,11 @@
 
       const avgScore = Store.calculateAverageScore(property);
       const scoreText = avgScore > 0 ? `★ ${avgScore.toFixed(1)}` : 'Niet beoordeeld';
-      const addr = formatAddress(property.address);
-      const priceText = formatEuro(property.price);
 
       marker.bindPopup(`
-        <div class="popup-address">${escapeHtml(addr)}</div>
-        <div class="popup-price">${escapeHtml(priceText)}</div>
-        <div class="popup-score">${escapeHtml(scoreText)}</div>
+        <strong>${escapeHtml(property.address)}</strong><br>
+        €${property.price.toLocaleString('nl-BE')}<br>
+        ${scoreText}
       `);
 
       marker.on('click', () => {
@@ -1563,8 +1538,6 @@
 
       const avgScore = Store.calculateAverageScore(property);
       const categories = Store.getAllCategories();
-      const addr = formatAddress(property.address);
-      const priceText = formatEuro(property.price);
 
       const content = `
         <div class="modal__header">
@@ -1576,27 +1549,15 @@
         <div class="modal__body">
           <!-- Header -->
           <div class="detail-header">
-            <div class="detail-address">${escapeHtml(addr)}</div>
-            <div class="detail-price">${escapeHtml(priceText)}</div>
             ${property.imageUrl ? `<img src="${escapeHtml(property.imageUrl)}" alt="" class="detail-image">` : ''}
+            <div class="detail-address">${escapeHtml(property.address)}</div>
+            <div class="detail-price">€${property.price.toLocaleString('nl-BE')}</div>
+            ${property.url ? `<a href="${escapeHtml(property.url)}" target="_blank" class="detail-link">🔗 Bekijk advertentie</a>` : ''}
           </div>
 
-          <!-- Advertentie link -->
+          <!-- Image URL -->
           <div class="detail-section">
-            <div class="detail-section__title">Advertentie</div>
-            ${property.url
-              ? `<a href="${escapeHtml(property.url)}" target="_blank" rel="noopener" class="detail-link">
-                   🔗 ${escapeHtml(property.url)}
-                 </a>`
-              : `<p style="color: var(--color-gray-500); font-size: var(--font-size-sm);">
-                   Geen link toegevoegd
-                 </p>`
-            }
-          </div>
-
-          <!-- Afbeelding URL -->
-          <div class="detail-section">
-            <div class="detail-section__title">Afbeelding URL</div>
+            <div class="detail-section__title">Afbeelding</div>
             <input type="url" class="form-input" id="detailImageUrl"
                    value="${escapeHtml(property.imageUrl || '')}"
                    onchange="updatePropertyField('imageUrl', this.value)"
@@ -1638,19 +1599,17 @@
                 const isCustom = !DEFAULT_CATEGORIES.includes(cat);
                 const deleteBtn = isCustom
                   ? `<button class="score-row__delete" onclick="deleteCategory('${cat}')" title="Verwijder categorie">✕</button>`
-                  : `<span class="score-row__delete score-row__delete--placeholder" aria-hidden="true"></span>`;
+                  : '';
                 return `
                   <div class="score-row">
                     <span class="score-label">${escapeHtml(CATEGORY_LABELS[cat] || cat)}</span>
-                    <div class="score-row__right">
-                      <div class="score-stars">
-                        ${[1,2,3,4,5].map(n => `
-                          <button class="score-star ${property.scores[cat] >= n ? 'score-star--active' : ''}"
-                                  onclick="updateScore('${cat}', ${n})">★</button>
-                        `).join('')}
-                      </div>
-                      ${deleteBtn}
+                    <div class="score-stars">
+                      ${[1,2,3,4,5].map(n => `
+                        <button class="score-star ${property.scores[cat] >= n ? 'score-star--active' : ''}"
+                                onclick="updateScore('${cat}', ${n})">★</button>
+                      `).join('')}
                     </div>
+                    ${deleteBtn}
                   </div>
                 `;
               }).join('')}
@@ -1935,8 +1894,6 @@
     // Create property card HTML
     function createPropertyCard(property) {
       const avgScore = Store.calculateAverageScore(property);
-      const addr = formatAddress(property.address);
-      const priceText = formatEuro(property.price);
       const scoreDisplay = avgScore > 0
         ? `<span class="property-card__score">
              ${renderStars(avgScore)}
@@ -1951,8 +1908,8 @@
       return `
         <div class="property-card" data-id="${property.id}">
           <div class="property-card__content">
-            <div class="property-card__address">${escapeHtml(addr)}</div>
-            <div class="property-card__price">${escapeHtml(priceText)}</div>
+            <div class="property-card__address">${escapeHtml(property.address)}</div>
+            <div class="property-card__price">€${property.price.toLocaleString('nl-BE')}</div>
             <div class="property-card__badges">
               <span class="badge badge--${property.status}">${STATUS_ICONS[property.status]} ${STATUS_LABELS[property.status]}</span>
               <span class="badge badge--${property.propertyStatus}">${PROPERTY_STATUS_ICONS[property.propertyStatus]} ${PROPERTY_STATUS_LABELS[property.propertyStatus]}</span>
@@ -1969,25 +1926,6 @@
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
-    }
-
-    // Parse euro input - accepts "250000", "250.000", "€ 250 000", etc.
-    function parseEuroInput(value) {
-      const digits = String(value ?? '').replace(/[^\d]/g, '');
-      return digits ? Number(digits) : 0;
-    }
-
-    // Format euro value for display
-    function formatEuro(value) {
-      const n = Number(value);
-      if (!Number.isFinite(n) || n <= 0) return '€—';
-      return `€${n.toLocaleString('nl-BE')}`;
-    }
-
-    // Format address for display
-    function formatAddress(value) {
-      const s = String(value ?? '').trim();
-      return s || 'Onbekend adres';
     }
 
     // Render property list
@@ -2286,7 +2224,7 @@
 
         addPropertyData.url = document.getElementById('addUrl').value.trim();
         addPropertyData.address = address;
-        addPropertyData.price = parseEuroInput(document.getElementById('addPrice').value);
+        addPropertyData.price = parseInt(document.getElementById('addPrice').value) || 0;
         addPropertyData.imageUrl = document.getElementById('addImageUrl').value.trim();
 
         openAddPropertyStep2();
@@ -2378,7 +2316,7 @@
     // IMPORT / EXPORT
     // ============================================
 
-    // Toggle menu dropdown - use pointerup to avoid double-toggle on mobile
+    // Toggle menu dropdown - handle both click and touch
     function toggleMenu(e) {
       e.preventDefault();
       e.stopPropagation();
@@ -2387,7 +2325,8 @@
     }
 
     const menuBtn = document.getElementById('menuBtn');
-    menuBtn.addEventListener('pointerup', toggleMenu);
+    menuBtn.addEventListener('click', toggleMenu);
+    menuBtn.addEventListener('touchend', toggleMenu);
 
     // Close menu when clicking outside
     document.addEventListener('click', (e) => {

@@ -1289,7 +1289,41 @@
         } catch (e) {
           console.error('Failed to load data:', e);
         }
+
+        // Ensure older data (or imports) have all expected fields
+        this.normalizeData();
         return this.data;
+      },
+
+      // Normalize/migrate data schema (keeps UI stable and prevents missing fields)
+      normalizeData() {
+        // Default top-level shape
+        if (!this.data || typeof this.data !== 'object') {
+          this.data = { version: 1, customCategories: [], properties: [] };
+        }
+        if (!Array.isArray(this.data.customCategories)) this.data.customCategories = [];
+        if (!Array.isArray(this.data.properties)) this.data.properties = [];
+
+        this.data.properties = this.data.properties.map((p) => ({
+          // preserve existing keys first
+          ...p,
+          url: p?.url || '',
+          address: formatAddress(p?.address),
+          price: parseEuroInput(p?.price),
+          imageUrl: p?.imageUrl || '',
+          coordinates: p?.coordinates || { lat: 0, lng: 0 },
+          pros: p?.pros || '',
+          cons: p?.cons || '',
+          visits: Array.isArray(p?.visits) ? p.visits : [],
+          bids: Array.isArray(p?.bids) ? p.bids : [],
+          scores: p?.scores && typeof p.scores === 'object' ? p.scores : this.getEmptyScores(),
+          status: p?.status || 'nieuw',
+          propertyStatus: p?.propertyStatus || 'beschikbaar',
+          dateAdded: p?.dateAdded || new Date().toISOString()
+        }));
+
+        // Ensure localStorage also gets the normalized structure
+        this.save();
       },
 
       // Save to LocalStorage
@@ -1422,7 +1456,7 @@
           const imported = JSON.parse(jsonString);
           if (imported.version && imported.properties) {
             this.data = imported;
-            this.save();
+            this.normalizeData();
             return true;
           }
         } catch (e) {
@@ -2039,10 +2073,10 @@
       if (currentFilters.search) {
         const search = currentFilters.search.toLowerCase();
         filtered = filtered.filter(p =>
-          p.address.toLowerCase().includes(search) ||
-          p.pros.toLowerCase().includes(search) ||
-          p.cons.toLowerCase().includes(search) ||
-          p.visits.some(v => v.notes.toLowerCase().includes(search))
+          String(p.address || '').toLowerCase().includes(search) ||
+          String(p.pros || '').toLowerCase().includes(search) ||
+          String(p.cons || '').toLowerCase().includes(search) ||
+          (Array.isArray(p.visits) ? p.visits : []).some(v => String(v.notes || '').toLowerCase().includes(search))
         );
       }
 
@@ -2231,14 +2265,25 @@
     }
 
     // Open add property modal (Step 1)
-    function openAddPropertyStep1() {
-      addPropertyData = {
-        url: '',
-        address: '',
-        price: '',
-        imageUrl: '',
-        coordinates: null
-      };
+    function openAddPropertyStep1(reset = true) {
+      if (reset || !addPropertyData) {
+        addPropertyData = {
+          url: '',
+          address: '',
+          price: '',
+          imageUrl: '',
+          coordinates: null
+        };
+      } else {
+        // Preserve existing values when navigating back from step 2
+        addPropertyData = {
+          url: addPropertyData.url ?? '',
+          address: addPropertyData.address ?? '',
+          price: addPropertyData.price ?? '',
+          imageUrl: addPropertyData.imageUrl ?? '',
+          coordinates: addPropertyData.coordinates ?? null
+        };
+      }
 
       const content = `
         <div class="modal__header">
@@ -2248,20 +2293,20 @@
         <div class="modal__body">
           <div class="form-group">
             <label class="form-label">Link (immoweb/zimmo/biddit)</label>
-            <input type="url" class="form-input" id="addUrl" placeholder="https://www.immoweb.be/...">
+            <input type="url" class="form-input" id="addUrl" placeholder="https://www.immoweb.be/..." value="${escapeHtml(addPropertyData.url)}">
             <p class="form-hint">Optioneel - plak de link naar de advertentie</p>
           </div>
           <div class="form-group">
             <label class="form-label form-label--required">Adres</label>
-            <input type="text" class="form-input" id="addAddress" placeholder="Straat 123, Gemeente">
+            <input type="text" class="form-input" id="addAddress" placeholder="Straat 123, Gemeente" value="${escapeHtml(addPropertyData.address)}">
           </div>
           <div class="form-group">
             <label class="form-label">Prijs (€)</label>
-            <input type="number" class="form-input" id="addPrice" placeholder="250000">
+            <input type="number" class="form-input" id="addPrice" placeholder="250000" value="${escapeHtml(addPropertyData.price ? String(addPropertyData.price) : '')}">
           </div>
           <div class="form-group">
             <label class="form-label">Afbeelding URL</label>
-            <input type="url" class="form-input" id="addImageUrl" placeholder="https://...jpg">
+            <input type="url" class="form-input" id="addImageUrl" placeholder="https://...jpg" value="${escapeHtml(addPropertyData.imageUrl)}">
             <p class="form-hint">Optioneel - kopieer afbeelding-URL van de advertentie</p>
           </div>
         </div>
@@ -2296,7 +2341,7 @@
     function openAddPropertyStep2() {
       const content = `
         <div class="modal__header">
-          <button class="modal__back" onclick="openAddPropertyStep1()">← Terug</button>
+          <button class="modal__back" onclick="openAddPropertyStep1(false)">← Terug</button>
           <button class="modal__close" onclick="closeModal()">×</button>
         </div>
         <div class="modal__body">
@@ -2371,7 +2416,7 @@
     }
 
     // Add button click handler
-    document.getElementById('addBtn').addEventListener('click', openAddPropertyStep1);
+    document.getElementById('addBtn').addEventListener('click', () => openAddPropertyStep1(true));
 
     // ============================================
     // IMPORT / EXPORT

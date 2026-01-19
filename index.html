@@ -2447,7 +2447,8 @@
       document.getElementById('menuDropdown').hidden = true;
 
       const data = Store.exportData();
-      const filename = `property-hunter-${new Date().toISOString().split('T')[0]}.json`;
+      const ts = new Date().toISOString().replace(/[:.]/g, '-'); // 2026-01-19T12-34-56-789Z
+      const filename = `property-hunter-${ts}.json`;
       const blob = new Blob([data], { type: 'application/json' });
 
       // Try Web Share API first (mobile)

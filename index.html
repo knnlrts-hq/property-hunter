@@ -26,6 +26,8 @@
       --color-warning: #f59e0b;
       --color-danger: #dc2626;
       --color-purple: #9333ea;
+      --color-teal: #0d9488;         /* Teal - bezocht (NEW) */
+      --color-bluegray: #64748b;     /* Blue-gray - onder_optie (NEW) */
       --color-gray-50: #f9fafb;
       --color-gray-100: #f3f4f6;
       --color-gray-200: #e5e7eb;
@@ -340,23 +342,41 @@
     }
 
     .badge {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
       padding: 2px 8px;
       border-radius: 9999px;
       font-size: 12px;
       font-weight: 500;
     }
 
+    /* Decision statuses */
     .badge--nieuw { background: #dbeafe; color: #1e40af; }
     .badge--bezoek_gepland { background: #f3e8ff; color: #6b21a8; }
-    .badge--bezocht { background: #dcfce7; color: #166534; }
-    .badge--ja { background: #dcfce7; color: #166534; }
-    .badge--nee { background: #fee2e2; color: #991b1b; }
-    .badge--misschien { background: #fef3c7; color: #92400e; }
+    .badge--bezocht { background: #ccfbf1; color: #0f766e; }  /* Teal */
+    .badge--ja { background: #dcfce7; color: #166534; }       /* Green */
+    .badge--misschien { background: #fef3c7; color: #92400e; } /* Amber */
+    .badge--nee { background: #fee2e2; color: #991b1b; }      /* Red */
 
+    /* Property statuses */
     .badge--beschikbaar { background: #ecfdf5; color: #065f46; }
-    .badge--onder_optie { background: #fef3c7; color: #92400e; }
-    .badge--verkocht { background: #f3f4f6; color: #6b7280; }
+    .badge--onder_optie {
+      background: #e2e8f0;
+      color: #475569;
+      background-image: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 2px,
+        rgba(100, 116, 139, 0.15) 2px,
+        rgba(100, 116, 139, 0.15) 4px
+      );
+    }
+    .badge--verkocht {
+      background: #f1f5f9;
+      color: #94a3b8;
+      text-decoration: line-through;
+    }
 
     .property-card__score {
       display: flex;
@@ -1190,6 +1210,21 @@
       ja: 'Ja',
       nee: 'Nee',
       misschien: 'Misschien'
+    };
+
+    const STATUS_ICONS = {
+      nieuw: '+',
+      bezoek_gepland: '📅',
+      bezocht: '✓',
+      ja: '★',
+      misschien: '?',
+      nee: '✕'
+    };
+
+    const PROPERTY_STATUS_ICONS = {
+      beschikbaar: '✓',
+      onder_optie: '⏳',
+      verkocht: 'S'
     };
 
     const PROPERTY_STATUS_LABELS = {

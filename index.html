@@ -742,6 +742,27 @@
       transform: scale(1.1);
     }
 
+    .score-row__delete {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      background: none;
+      border: none;
+      color: var(--color-gray-400);
+      cursor: pointer;
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .score-row:hover .score-row__delete {
+      opacity: 1;
+    }
+
+    .score-row__delete:hover {
+      color: var(--color-danger);
+    }
+
     .score-average {
       display: flex;
       align-items: center;
@@ -1304,6 +1325,26 @@
         return key;
       },
 
+      // Remove custom category
+      removeCustomCategory(key) {
+        const index = this.data.customCategories.indexOf(key);
+        if (index === -1) return false;  // Not a custom category or doesn't exist
+
+        // Remove from customCategories array
+        this.data.customCategories.splice(index, 1);
+
+        // Remove from CATEGORY_LABELS
+        delete CATEGORY_LABELS[key];
+
+        // Remove from all properties' scores
+        this.data.properties.forEach(p => {
+          delete p.scores[key];
+        });
+
+        this.save();
+        return true;
+      },
+
       // Calculate average score for a property
       calculateAverageScore(property) {
         const scores = Object.values(property.scores).filter(s => s > 0);
@@ -1515,17 +1556,24 @@
           <div class="detail-section">
             <div class="detail-section__title">Scores</div>
             <div id="scoresContainer">
-              ${categories.map(cat => `
-                <div class="score-row">
-                  <span class="score-label">${escapeHtml(CATEGORY_LABELS[cat] || cat)}</span>
-                  <div class="score-stars">
-                    ${[1,2,3,4,5].map(n => `
-                      <button class="score-star ${property.scores[cat] >= n ? 'score-star--active' : ''}"
-                              onclick="updateScore('${cat}', ${n})">★</button>
-                    `).join('')}
+              ${categories.map(cat => {
+                const isCustom = !DEFAULT_CATEGORIES.includes(cat);
+                const deleteBtn = isCustom
+                  ? `<button class="score-row__delete" onclick="deleteCategory('${cat}')" title="Verwijder categorie">✕</button>`
+                  : '';
+                return `
+                  <div class="score-row">
+                    <span class="score-label">${escapeHtml(CATEGORY_LABELS[cat] || cat)}</span>
+                    <div class="score-stars">
+                      ${[1,2,3,4,5].map(n => `
+                        <button class="score-star ${property.scores[cat] >= n ? 'score-star--active' : ''}"
+                                onclick="updateScore('${cat}', ${n})">★</button>
+                      `).join('')}
+                    </div>
+                    ${deleteBtn}
                   </div>
-                </div>
-              `).join('')}
+                `;
+              }).join('')}
             </div>
             <div class="add-category-row">
               <input type="text" class="form-input" id="newCategoryInput" placeholder="Nieuwe categorie...">
@@ -1687,6 +1735,19 @@
 
       // Re-open detail to refresh
       openPropertyDetail(currentPropertyId);
+    }
+
+    function deleteCategory(categoryKey) {
+      if (!confirm('Deze categorie verwijderen voor alle woningen?')) return;
+
+      Store.removeCustomCategory(categoryKey);
+
+      // Re-render detail view if open
+      if (currentPropertyId) {
+        openPropertyDetail(currentPropertyId);
+      }
+
+      showToast('Categorie verwijderd');
     }
 
     // Toggle add visit form

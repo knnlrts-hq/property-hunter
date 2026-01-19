@@ -301,19 +301,7 @@
 
     .marker-icon--verkocht {
       background: var(--color-gray-500) !important;
-      opacity: 0.4;
-    }
-
-    /* Slash overlay for verkocht */
-    .marker-icon--verkocht::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: -2px;
-      right: -2px;
-      height: 2px;
-      background: rgba(255,255,255,0.8);
-      transform: rotate(-45deg);
+      opacity: 0.3;
     }
 
     /* Property cards */
@@ -1237,7 +1225,7 @@
     const PROPERTY_STATUS_ICONS = {
       beschikbaar: '✓',
       onder_optie: '⏳',
-      verkocht: 'S'
+      verkocht: '☹'
     };
 
     const PROPERTY_STATUS_LABELS = {

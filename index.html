@@ -283,23 +283,37 @@
 
     .marker-icon--nieuw { background: var(--color-primary); }
     .marker-icon--bezoek_gepland { background: var(--color-purple); }
-    .marker-icon--bezocht { background: var(--color-success); }
+    .marker-icon--bezocht { background: var(--color-teal); }  /* Changed from success to teal */
     .marker-icon--ja { background: var(--color-success); }
     .marker-icon--nee { background: var(--color-danger); }
     .marker-icon--misschien { background: var(--color-warning); }
 
     .marker-icon--onder_optie {
+      background: var(--color-bluegray) !important;
       background-image: repeating-linear-gradient(
         45deg,
         transparent,
         transparent 3px,
         rgba(255,255,255,0.3) 3px,
         rgba(255,255,255,0.3) 6px
-      );
+      ) !important;
     }
 
     .marker-icon--verkocht {
-      opacity: 0.5;
+      background: var(--color-gray-500) !important;
+      opacity: 0.6;
+    }
+
+    /* Slash overlay for verkocht */
+    .marker-icon--verkocht::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: -2px;
+      right: -2px;
+      height: 2px;
+      background: rgba(255,255,255,0.8);
+      transform: rotate(-45deg);
     }
 
     /* Property cards */
@@ -1455,10 +1469,8 @@
       const status = property.status;
       const propertyStatus = property.propertyStatus;
 
-      let symbol = '';
-      if (status === 'ja') symbol = '★';
-      else if (status === 'nee') symbol = '✕';
-      else if (status === 'misschien') symbol = '?';
+      // Always show an icon based on status
+      const symbol = STATUS_ICONS[status] || '';
 
       let classes = `marker-icon marker-icon--${status}`;
       if (propertyStatus === 'onder_optie') classes += ' marker-icon--onder_optie';

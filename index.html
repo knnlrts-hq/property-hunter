@@ -112,6 +112,15 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      /* Touch fixes for iOS/Android */
+      -webkit-tap-highlight-color: rgba(255, 255, 255, 0.2);
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .header__menu-btn span {
+      pointer-events: none;
     }
 
     /* Main */
@@ -961,6 +970,10 @@
       font-size: var(--font-size-base);
       cursor: pointer;
       color: var(--color-gray-700);
+      -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     .menu-item:hover {
@@ -2203,11 +2216,17 @@
     // IMPORT / EXPORT
     // ============================================
 
-    // Toggle menu dropdown
-    document.getElementById('menuBtn').addEventListener('click', () => {
+    // Toggle menu dropdown - handle both click and touch
+    function toggleMenu(e) {
+      e.preventDefault();
+      e.stopPropagation();
       const dropdown = document.getElementById('menuDropdown');
       dropdown.hidden = !dropdown.hidden;
-    });
+    }
+
+    const menuBtn = document.getElementById('menuBtn');
+    menuBtn.addEventListener('click', toggleMenu);
+    menuBtn.addEventListener('touchend', toggleMenu);
 
     // Close menu when clicking outside
     document.addEventListener('click', (e) => {

@@ -26,6 +26,8 @@
       --color-warning: #f59e0b;
       --color-danger: #dc2626;
       --color-purple: #9333ea;
+      --color-teal: #0d9488;         /* Teal - bezocht (NEW) */
+      --color-bluegray: #64748b;     /* Blue-gray - onder_optie (NEW) */
       --color-gray-50: #f9fafb;
       --color-gray-100: #f3f4f6;
       --color-gray-200: #e5e7eb;
@@ -112,6 +114,15 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      /* Touch fixes for iOS/Android */
+      -webkit-tap-highlight-color: rgba(255, 255, 255, 0.2);
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .header__menu-btn span {
+      pointer-events: none;
     }
 
     /* Main */
@@ -272,23 +283,37 @@
 
     .marker-icon--nieuw { background: var(--color-primary); }
     .marker-icon--bezoek_gepland { background: var(--color-purple); }
-    .marker-icon--bezocht { background: var(--color-success); }
+    .marker-icon--bezocht { background: var(--color-teal); }  /* Changed from success to teal */
     .marker-icon--ja { background: var(--color-success); }
     .marker-icon--nee { background: var(--color-danger); }
     .marker-icon--misschien { background: var(--color-warning); }
 
     .marker-icon--onder_optie {
+      background: var(--color-bluegray) !important;
       background-image: repeating-linear-gradient(
         45deg,
         transparent,
         transparent 3px,
         rgba(255,255,255,0.3) 3px,
         rgba(255,255,255,0.3) 6px
-      );
+      ) !important;
     }
 
     .marker-icon--verkocht {
-      opacity: 0.5;
+      background: var(--color-gray-500) !important;
+      opacity: 0.6;
+    }
+
+    /* Slash overlay for verkocht */
+    .marker-icon--verkocht::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: -2px;
+      right: -2px;
+      height: 2px;
+      background: rgba(255,255,255,0.8);
+      transform: rotate(-45deg);
     }
 
     /* Property cards */
@@ -331,23 +356,41 @@
     }
 
     .badge {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
       padding: 2px 8px;
       border-radius: 9999px;
       font-size: 12px;
       font-weight: 500;
     }
 
+    /* Decision statuses */
     .badge--nieuw { background: #dbeafe; color: #1e40af; }
     .badge--bezoek_gepland { background: #f3e8ff; color: #6b21a8; }
-    .badge--bezocht { background: #dcfce7; color: #166534; }
-    .badge--ja { background: #dcfce7; color: #166534; }
-    .badge--nee { background: #fee2e2; color: #991b1b; }
-    .badge--misschien { background: #fef3c7; color: #92400e; }
+    .badge--bezocht { background: #ccfbf1; color: #0f766e; }  /* Teal */
+    .badge--ja { background: #dcfce7; color: #166534; }       /* Green */
+    .badge--misschien { background: #fef3c7; color: #92400e; } /* Amber */
+    .badge--nee { background: #fee2e2; color: #991b1b; }      /* Red */
 
+    /* Property statuses */
     .badge--beschikbaar { background: #ecfdf5; color: #065f46; }
-    .badge--onder_optie { background: #fef3c7; color: #92400e; }
-    .badge--verkocht { background: #f3f4f6; color: #6b7280; }
+    .badge--onder_optie {
+      background: #e2e8f0;
+      color: #475569;
+      background-image: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 2px,
+        rgba(100, 116, 139, 0.15) 2px,
+        rgba(100, 116, 139, 0.15) 4px
+      );
+    }
+    .badge--verkocht {
+      background: #f1f5f9;
+      color: #94a3b8;
+      text-decoration: line-through;
+    }
 
     .property-card__score {
       display: flex;
@@ -359,6 +402,34 @@
 
     .property-card__score-value {
       color: var(--color-gray-700);
+    }
+
+    /* Property card with image layout */
+    .property-card {
+      display: flex;
+      gap: var(--spacing-md);
+    }
+
+    .property-card__content {
+      flex: 1;
+      min-width: 0; /* Prevent flex child overflow */
+    }
+
+    .property-card__image {
+      width: 80px;
+      height: 80px;
+      border-radius: var(--radius-sm);
+      object-fit: cover;
+      flex-shrink: 0;
+      background: var(--color-gray-100);
+    }
+
+    .property-card__image--placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-gray-400);
+      font-size: 24px;
     }
 
     /* Empty state */
@@ -632,6 +703,14 @@
       text-decoration: underline;
     }
 
+    .detail-image {
+      width: 100%;
+      max-height: 200px;
+      object-fit: cover;
+      border-radius: var(--radius-md);
+      margin-bottom: var(--spacing-md);
+    }
+
     .detail-section {
       margin-bottom: var(--spacing-lg);
     }
@@ -695,6 +774,27 @@
 
     .score-star:hover {
       transform: scale(1.1);
+    }
+
+    .score-row__delete {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      background: none;
+      border: none;
+      color: var(--color-gray-400);
+      cursor: pointer;
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .score-row:hover .score-row__delete {
+      opacity: 1;
+    }
+
+    .score-row__delete:hover {
+      color: var(--color-danger);
     }
 
     .score-average {
@@ -925,6 +1025,10 @@
       font-size: var(--font-size-base);
       cursor: pointer;
       color: var(--color-gray-700);
+      -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     .menu-item:hover {
@@ -1122,6 +1226,21 @@
       misschien: 'Misschien'
     };
 
+    const STATUS_ICONS = {
+      nieuw: '+',
+      bezoek_gepland: '📅',
+      bezocht: '✓',
+      ja: '★',
+      misschien: '?',
+      nee: '✕'
+    };
+
+    const PROPERTY_STATUS_ICONS = {
+      beschikbaar: '✓',
+      onder_optie: '⏳',
+      verkocht: 'S'
+    };
+
     const PROPERTY_STATUS_LABELS = {
       beschikbaar: 'Beschikbaar',
       onder_optie: 'Onder optie',
@@ -1189,6 +1308,7 @@
           url: property.url || '',
           address: property.address || '',
           price: property.price || 0,
+          imageUrl: property.imageUrl || '',
           coordinates: property.coordinates || { lat: 0, lng: 0 },
           status: 'nieuw',
           propertyStatus: 'beschikbaar',
@@ -1252,6 +1372,26 @@
           this.save();
         }
         return key;
+      },
+
+      // Remove custom category
+      removeCustomCategory(key) {
+        const index = this.data.customCategories.indexOf(key);
+        if (index === -1) return false;  // Not a custom category or doesn't exist
+
+        // Remove from customCategories array
+        this.data.customCategories.splice(index, 1);
+
+        // Remove from CATEGORY_LABELS
+        delete CATEGORY_LABELS[key];
+
+        // Remove from all properties' scores
+        this.data.properties.forEach(p => {
+          delete p.scores[key];
+        });
+
+        this.save();
+        return true;
       },
 
       // Calculate average score for a property
@@ -1329,10 +1469,8 @@
       const status = property.status;
       const propertyStatus = property.propertyStatus;
 
-      let symbol = '';
-      if (status === 'ja') symbol = '★';
-      else if (status === 'nee') symbol = '✕';
-      else if (status === 'misschien') symbol = '?';
+      // Always show an icon based on status
+      const symbol = STATUS_ICONS[status] || '';
 
       let classes = `marker-icon marker-icon--${status}`;
       if (propertyStatus === 'onder_optie') classes += ' marker-icon--onder_optie';
@@ -1424,13 +1562,28 @@
         <div class="modal__body">
           <!-- Header -->
           <div class="detail-header">
+            ${property.imageUrl ? `<img src="${escapeHtml(property.imageUrl)}" alt="" class="detail-image">` : ''}
             <div class="detail-address">${escapeHtml(property.address)}</div>
             <div class="detail-price">€${property.price.toLocaleString('nl-BE')}</div>
             ${property.url ? `<a href="${escapeHtml(property.url)}" target="_blank" class="detail-link">🔗 Bekijk advertentie</a>` : ''}
           </div>
 
+          <!-- Image URL -->
+          <div class="detail-section">
+            <div class="detail-section__title">Afbeelding</div>
+            <input type="url" class="form-input" id="detailImageUrl"
+                   value="${escapeHtml(property.imageUrl || '')}"
+                   onchange="updatePropertyField('imageUrl', this.value)"
+                   placeholder="https://...jpg">
+          </div>
+
           <!-- Status -->
           <div class="detail-section">
+            <div class="detail-section__title">Status</div>
+            <div class="detail-section__badges" style="margin-bottom: var(--spacing-sm);">
+              <span class="badge badge--${property.status}">${STATUS_ICONS[property.status]} ${STATUS_LABELS[property.status]}</span>
+              <span class="badge badge--${property.propertyStatus}">${PROPERTY_STATUS_ICONS[property.propertyStatus]} ${PROPERTY_STATUS_LABELS[property.propertyStatus]}</span>
+            </div>
             <div class="detail-status-row">
               <div class="form-group">
                 <label class="form-label">Status</label>
@@ -1455,17 +1608,24 @@
           <div class="detail-section">
             <div class="detail-section__title">Scores</div>
             <div id="scoresContainer">
-              ${categories.map(cat => `
-                <div class="score-row">
-                  <span class="score-label">${escapeHtml(CATEGORY_LABELS[cat] || cat)}</span>
-                  <div class="score-stars">
-                    ${[1,2,3,4,5].map(n => `
-                      <button class="score-star ${property.scores[cat] >= n ? 'score-star--active' : ''}"
-                              onclick="updateScore('${cat}', ${n})">★</button>
-                    `).join('')}
+              ${categories.map(cat => {
+                const isCustom = !DEFAULT_CATEGORIES.includes(cat);
+                const deleteBtn = isCustom
+                  ? `<button class="score-row__delete" onclick="deleteCategory('${cat}')" title="Verwijder categorie">✕</button>`
+                  : '';
+                return `
+                  <div class="score-row">
+                    <span class="score-label">${escapeHtml(CATEGORY_LABELS[cat] || cat)}</span>
+                    <div class="score-stars">
+                      ${[1,2,3,4,5].map(n => `
+                        <button class="score-star ${property.scores[cat] >= n ? 'score-star--active' : ''}"
+                                onclick="updateScore('${cat}', ${n})">★</button>
+                      `).join('')}
+                    </div>
+                    ${deleteBtn}
                   </div>
-                </div>
-              `).join('')}
+                `;
+              }).join('')}
             </div>
             <div class="add-category-row">
               <input type="text" class="form-input" id="newCategoryInput" placeholder="Nieuwe categorie...">
@@ -1629,6 +1789,19 @@
       openPropertyDetail(currentPropertyId);
     }
 
+    function deleteCategory(categoryKey) {
+      if (!confirm('Deze categorie verwijderen voor alle woningen?')) return;
+
+      Store.removeCustomCategory(categoryKey);
+
+      // Re-render detail view if open
+      if (currentPropertyId) {
+        openPropertyDetail(currentPropertyId);
+      }
+
+      showToast('Categorie verwijderd');
+    }
+
     // Toggle add visit form
     function toggleAddVisitForm() {
       const form = document.getElementById('addVisitForm');
@@ -1741,15 +1914,22 @@
            </span>`
         : '<span class="property-card__score property-card__score-value">Niet beoordeeld</span>';
 
+      const imageHtml = property.imageUrl
+        ? `<img src="${escapeHtml(property.imageUrl)}" alt="" class="property-card__image" loading="lazy">`
+        : `<div class="property-card__image property-card__image--placeholder">🏠</div>`;
+
       return `
         <div class="property-card" data-id="${property.id}">
-          <div class="property-card__address">${escapeHtml(property.address)}</div>
-          <div class="property-card__price">€${property.price.toLocaleString('nl-BE')}</div>
-          <div class="property-card__badges">
-            <span class="badge badge--${property.status}">${STATUS_LABELS[property.status]}</span>
-            <span class="badge badge--${property.propertyStatus}">${PROPERTY_STATUS_LABELS[property.propertyStatus]}</span>
+          <div class="property-card__content">
+            <div class="property-card__address">${escapeHtml(property.address)}</div>
+            <div class="property-card__price">€${property.price.toLocaleString('nl-BE')}</div>
+            <div class="property-card__badges">
+              <span class="badge badge--${property.status}">${STATUS_ICONS[property.status]} ${STATUS_LABELS[property.status]}</span>
+              <span class="badge badge--${property.propertyStatus}">${PROPERTY_STATUS_ICONS[property.propertyStatus]} ${PROPERTY_STATUS_LABELS[property.propertyStatus]}</span>
+            </div>
+            ${scoreDisplay}
           </div>
-          ${scoreDisplay}
+          ${imageHtml}
         </div>
       `;
     }
@@ -2008,6 +2188,7 @@
         url: '',
         address: '',
         price: '',
+        imageUrl: '',
         coordinates: null
       };
 
@@ -2029,6 +2210,11 @@
           <div class="form-group">
             <label class="form-label">Prijs (€)</label>
             <input type="number" class="form-input" id="addPrice" placeholder="250000">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Afbeelding URL</label>
+            <input type="url" class="form-input" id="addImageUrl" placeholder="https://...jpg">
+            <p class="form-hint">Optioneel - kopieer afbeelding-URL van de advertentie</p>
           </div>
         </div>
         <div class="modal__footer">
@@ -2052,6 +2238,7 @@
         addPropertyData.url = document.getElementById('addUrl').value.trim();
         addPropertyData.address = address;
         addPropertyData.price = parseInt(document.getElementById('addPrice').value) || 0;
+        addPropertyData.imageUrl = document.getElementById('addImageUrl').value.trim();
 
         openAddPropertyStep2();
       });
@@ -2114,6 +2301,7 @@
         url: addPropertyData.url,
         address: addPropertyData.address,
         price: addPropertyData.price,
+        imageUrl: addPropertyData.imageUrl,
         coordinates: addPropertyData.coordinates
       });
 
@@ -2141,11 +2329,17 @@
     // IMPORT / EXPORT
     // ============================================
 
-    // Toggle menu dropdown
-    document.getElementById('menuBtn').addEventListener('click', () => {
+    // Toggle menu dropdown - handle both click and touch
+    function toggleMenu(e) {
+      e.preventDefault();
+      e.stopPropagation();
       const dropdown = document.getElementById('menuDropdown');
       dropdown.hidden = !dropdown.hidden;
-    });
+    }
+
+    const menuBtn = document.getElementById('menuBtn');
+    menuBtn.addEventListener('click', toggleMenu);
+    menuBtn.addEventListener('touchend', toggleMenu);
 
     // Close menu when clicking outside
     document.addEventListener('click', (e) => {

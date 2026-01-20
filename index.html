@@ -927,6 +927,25 @@
       margin-top: var(--spacing-xs);
     }
 
+    .visit-status {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 500;
+      margin-top: var(--spacing-xs);
+    }
+
+    .visit-status--gepland {
+      background: #f3e8ff;
+      color: #6b21a8;
+    }
+
+    .visit-status--bezocht {
+      background: #ccfbf1;
+      color: #0f766e;
+    }
+
     .visit-delete {
       background: none;
       border: none;
@@ -994,6 +1013,40 @@
     }
 
     .bid-delete:hover {
+      color: var(--color-danger);
+    }
+
+
+    /* Asking prices (Vraagprijs) */
+    .askingprice-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: var(--spacing-sm);
+      background: var(--color-gray-50);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .askingprice-amount {
+      font-weight: 600;
+      font-size: var(--font-size-base);
+    }
+
+    .askingprice-date {
+      font-size: var(--font-size-sm);
+      color: var(--color-gray-500);
+    }
+
+    .askingprice-delete {
+      background: none;
+      border: none;
+      color: var(--color-gray-400);
+      cursor: pointer;
+      padding: var(--spacing-xs);
+    }
+
+    .askingprice-delete:hover {
       color: var(--color-danger);
     }
 
@@ -1325,6 +1378,11 @@
       uitgebracht: 'Uitgebracht'
     };
 
+    const VISIT_STATUS_LABELS = {
+      gepland: 'Gepland',
+      bezocht: 'Bezocht'
+    };
+
     // Generate UUID
     function generateId() {
       return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -1367,23 +1425,59 @@
         if (!Array.isArray(this.data.customCategories)) this.data.customCategories = [];
         if (!Array.isArray(this.data.properties)) this.data.properties = [];
 
-        this.data.properties = this.data.properties.map((p) => ({
-          // preserve existing keys first
-          ...p,
-          url: p?.url || '',
-          address: formatAddress(p?.address),
-          price: parseEuroInput(p?.price),
-          imageUrl: p?.imageUrl || '',
-          coordinates: p?.coordinates || { lat: 0, lng: 0 },
-          pros: p?.pros || '',
-          cons: p?.cons || '',
-          visits: Array.isArray(p?.visits) ? p.visits : [],
-          bids: Array.isArray(p?.bids) ? p.bids : [],
-          scores: p?.scores && typeof p.scores === 'object' ? p.scores : this.getEmptyScores(),
-          status: p?.status || 'nieuw',
-          propertyStatus: p?.propertyStatus || 'beschikbaar',
-          dateAdded: p?.dateAdded || new Date().toISOString()
-        }));
+        this.data.properties = this.data.properties.map((p) => {
+          const normalized = {
+            // preserve existing keys first
+            ...p,
+            url: p?.url || '',
+            address: formatAddress(p?.address),
+            price: parseEuroInput(p?.price),
+            imageUrl: p?.imageUrl || '',
+            coordinates: p?.coordinates || { lat: 0, lng: 0 },
+            pros: p?.pros || '',
+            cons: p?.cons || '',
+            visits: Array.isArray(p?.visits) ? p.visits : [],
+            bids: Array.isArray(p?.bids) ? p.bids : [],
+            scores: p?.scores && typeof p.scores === 'object' ? p.scores : this.getEmptyScores(),
+            status: p?.status || 'nieuw',
+            propertyStatus: p?.propertyStatus || 'beschikbaar',
+            dateAdded: p?.dateAdded || new Date().toISOString()
+          };
+
+          // Normalize visits (ensure {date, status, notes})
+          normalized.visits = (Array.isArray(normalized.visits) ? normalized.visits : [])
+            .map((v) => ({
+              date: (String(v?.date || '').slice(0, 10) || String(normalized.dateAdded).split('T')[0] || new Date().toISOString().split('T')[0]),
+              status: (v?.status === 'gepland' || v?.status === 'bezocht') ? v.status : 'bezocht',
+              notes: String(v?.notes || '').trim()
+            }))
+            .filter((v) => v.date);
+
+          // Asking price history (Vraagprijs)
+          const fallbackDate = String(normalized.dateAdded).split('T')[0] || new Date().toISOString().split('T')[0];
+          const rawAskingPrices = Array.isArray(p?.askingPrices) ? p.askingPrices : [];
+
+          let askingPrices = rawAskingPrices
+            .map((e) => ({
+              date: (String(e?.date || '').slice(0, 10) || fallbackDate),
+              price: parseEuroInput(e?.price)
+            }))
+            .filter((e) => e.date);
+
+          // If no asking price history exists yet, bootstrap it from the main price
+          if (askingPrices.length === 0 && normalized.price > 0) {
+            askingPrices = [{ date: fallbackDate, price: normalized.price }];
+          }
+
+          // Propagate latest asking price to main price
+          if (askingPrices.length > 0) {
+            const latest = askingPrices[askingPrices.length - 1];
+            normalized.price = parseEuroInput(latest.price);
+          }
+
+          normalized.askingPrices = askingPrices;
+          return normalized;
+        });
 
         // Ensure localStorage also gets the normalized structure
         this.save();
@@ -1410,11 +1504,12 @@
 
       // Add new property
       addProperty(property) {
+        const initialPrice = parseEuroInput(property.price);
         const newProperty = {
           id: generateId(),
           url: property.url || '',
           address: formatAddress(property.address),
-          price: parseEuroInput(property.price),
+          price: initialPrice,
           imageUrl: property.imageUrl || '',
           coordinates: property.coordinates || { lat: 0, lng: 0 },
           status: 'nieuw',
@@ -1424,6 +1519,9 @@
           cons: '',
           visits: [],
           bids: [],
+          askingPrices: initialPrice > 0
+            ? [{ date: new Date().toISOString().split('T')[0], price: initialPrice }]
+            : [],
           dateAdded: new Date().toISOString()
         };
         this.data.properties.push(newProperty);
@@ -1662,6 +1760,7 @@
       const categories = Store.getAllCategories();
       const addr = formatAddress(property.address);
       const priceText = formatEuro(property.price);
+      const askingPrices = Array.isArray(property.askingPrices) ? property.askingPrices : [];
 
       const content = `
         <div class="modal__header">
@@ -1689,15 +1788,6 @@
                    Geen link toegevoegd
                  </p>`
             }
-          </div>
-
-          <!-- Afbeelding URL -->
-          <div class="detail-section">
-            <div class="detail-section__title">Afbeelding URL</div>
-            <input type="url" class="form-input" id="detailImageUrl"
-                   value="${escapeHtml(property.imageUrl || '')}"
-                   onchange="updatePropertyField('imageUrl', this.value)"
-                   placeholder="https://...jpg">
           </div>
 
           <!-- Status -->
@@ -1780,6 +1870,42 @@
                       placeholder="Wat zijn de negatieve punten?">${escapeHtml(property.cons)}</textarea>
           </div>
 
+          <!-- Vraagprijs -->
+          <div class="detail-section">
+            <div class="detail-section__title">Vraagprijs</div>
+            <div id="askingPricesContainer">
+              ${askingPrices.length === 0 ? '<p style="color: var(--color-gray-500); font-size: var(--font-size-sm);">Nog geen vraagprijs wijzigingen</p>' : ''}
+              ${askingPrices.slice().reverse().map((vp, revIndex) => {
+                const index = askingPrices.length - 1 - revIndex;
+                return `
+                  <div class="askingprice-item">
+                    <div>
+                      <div class="askingprice-amount">${escapeHtml(formatEuro(vp.price))}</div>
+                      <div class="askingprice-date">${formatDate(vp.date)}</div>
+                    </div>
+                    <button class="askingprice-delete" onclick="deleteAskingPrice(${index})">✕</button>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+            <button class="btn btn--secondary btn--small" onclick="toggleAddAskingPriceForm()" id="addAskingPriceBtn">
+              + Vraagprijs toevoegen
+            </button>
+            <div class="add-bid-form" id="addAskingPriceForm" hidden>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Nieuwe vraagprijs (€)</label>
+                <input type="number" class="form-input" id="askingPriceAmount" placeholder="305000">
+              </div>
+              <div class="add-visit-row">
+                <input type="date" class="form-input" id="askingPriceDate" value="${new Date().toISOString().split('T')[0]}">
+              </div>
+              <div class="add-visit-row">
+                <button class="btn btn--secondary btn--small" onclick="toggleAddAskingPriceForm()">Annuleren</button>
+                <button class="btn btn--primary btn--small" onclick="addAskingPrice()">Toevoegen</button>
+              </div>
+            </div>
+          </div>
+
           <!-- Bids -->
           <div class="detail-section">
             <div class="detail-section__title">Biedingen</div>
@@ -1829,6 +1955,7 @@
                 <div class="visit-item">
                   <div>
                     <div class="visit-date">${formatDate(visit.date)}</div>
+                    <span class="visit-status visit-status--${visit.status || 'bezocht'}">${VISIT_STATUS_LABELS[visit.status || 'bezocht'] || 'Bezocht'}</span>
                     ${visit.notes ? `<div class="visit-notes">${escapeHtml(visit.notes)}</div>` : ''}
                   </div>
                   <button class="visit-delete" onclick="deleteVisit(${index})">✕</button>
@@ -1841,6 +1968,10 @@
             <div class="add-visit-form" id="addVisitForm" hidden>
               <div class="add-visit-row">
                 <input type="date" class="form-input" id="visitDate" value="${new Date().toISOString().split('T')[0]}">
+                <select class="form-input" id="visitStatus">
+                  <option value="gepland">Gepland</option>
+                  <option value="bezocht">Bezocht</option>
+                </select>
               </div>
               <input type="text" class="form-input" id="visitNotes" placeholder="Notities (optioneel)">
               <div class="add-visit-row">
@@ -1848,6 +1979,15 @@
                 <button class="btn btn--primary btn--small" onclick="addVisit()">Toevoegen</button>
               </div>
             </div>
+          </div>
+
+          <!-- Afbeelding URL -->
+          <div class="detail-section">
+            <div class="detail-section__title">Afbeelding URL</div>
+            <input type="url" class="form-input" id="detailImageUrl"
+                   value="${escapeHtml(property.imageUrl || '')}"
+                   onchange="updatePropertyField('imageUrl', this.value)"
+                   placeholder="https://...jpg">
           </div>
         </div>
       `;
@@ -1938,19 +2078,21 @@
       if (!currentPropertyId) return;
       const property = Store.getProperty(currentPropertyId);
       const date = document.getElementById('visitDate').value;
+      const status = (document.getElementById('visitStatus')?.value) || 'gepland';
       const notes = document.getElementById('visitNotes').value.trim();
 
       if (!date) return;
 
-      const visits = [...property.visits, { date, notes }];
+      const visits = [...(Array.isArray(property.visits) ? property.visits : []), { date, status, notes }];
       visits.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-      Store.updateProperty(currentPropertyId, { visits });
+      const mainStatus = visits.some(v => (v?.status || 'bezocht') === 'bezocht')
+        ? 'bezocht'
+        : visits.some(v => (v?.status || 'bezocht') === 'gepland')
+          ? 'bezoek_gepland'
+          : 'nieuw';
 
-      // If first visit, update status to bezocht if still nieuw
-      if (property.status === 'nieuw' || property.status === 'bezoek_gepland') {
-        Store.updateProperty(currentPropertyId, { status: 'bezocht' });
-      }
+      Store.updateProperty(currentPropertyId, { visits, status: mainStatus });
 
       // Re-open to refresh
       openPropertyDetail(currentPropertyId);
@@ -1961,8 +2103,51 @@
     function deleteVisit(index) {
       if (!currentPropertyId) return;
       const property = Store.getProperty(currentPropertyId);
-      const visits = property.visits.filter((_, i) => i !== index);
-      Store.updateProperty(currentPropertyId, { visits });
+      const visits = (Array.isArray(property.visits) ? property.visits : []).filter((_, i) => i !== index);
+
+      const mainStatus = visits.some(v => (v?.status || 'bezocht') === 'bezocht')
+        ? 'bezocht'
+        : visits.some(v => (v?.status || 'bezocht') === 'gepland')
+          ? 'bezoek_gepland'
+          : 'nieuw';
+
+      Store.updateProperty(currentPropertyId, { visits, status: mainStatus });
+      openPropertyDetail(currentPropertyId);
+      renderApp();
+    }
+
+    // Toggle add asking price form
+    function toggleAddAskingPriceForm() {
+      const form = document.getElementById('addAskingPriceForm');
+      form.hidden = !form.hidden;
+    }
+
+    // Add asking price
+    function addAskingPrice() {
+      if (!currentPropertyId) return;
+      const property = Store.getProperty(currentPropertyId);
+      const price = parseEuroInput(document.getElementById('askingPriceAmount').value);
+      const date = document.getElementById('askingPriceDate').value;
+
+      if (!price || !date) return;
+
+      const askingPrices = [...(Array.isArray(property.askingPrices) ? property.askingPrices : []), { date, price }];
+
+      // Latest added entry becomes the main asking price everywhere
+      Store.updateProperty(currentPropertyId, { askingPrices, price });
+
+      openPropertyDetail(currentPropertyId);
+      renderApp();
+    }
+
+    // Delete asking price
+    function deleteAskingPrice(index) {
+      if (!currentPropertyId) return;
+      const property = Store.getProperty(currentPropertyId);
+      const askingPrices = (Array.isArray(property.askingPrices) ? property.askingPrices : []).filter((_, i) => i !== index);
+      const newPrice = askingPrices.length > 0 ? parseEuroInput(askingPrices[askingPrices.length - 1].price) : 0;
+
+      Store.updateProperty(currentPropertyId, { askingPrices, price: newPrice });
       openPropertyDetail(currentPropertyId);
       renderApp();
     }
@@ -2299,17 +2484,47 @@
       for (const gistProp of gistData.properties) {
         if (gistProp.id && !localIds.has(gistProp.id)) {
           // Normalize the gist property before adding
+          // Normalize askingPrices + main price
+          const fallbackDate = String(gistProp.dateAdded || new Date().toISOString()).split('T')[0] || new Date().toISOString().split('T')[0];
+          let basePrice = parseEuroInput(gistProp.price);
+
+          let askingPrices = Array.isArray(gistProp.askingPrices)
+            ? gistProp.askingPrices
+                .map((e) => ({
+                  date: (String(e?.date || '').slice(0, 10) || fallbackDate),
+                  price: parseEuroInput(e?.price)
+                }))
+                .filter((e) => e.date)
+            : [];
+
+          if (askingPrices.length === 0 && basePrice > 0) {
+            askingPrices = [{ date: fallbackDate, price: basePrice }];
+          }
+
+          if (askingPrices.length > 0) {
+            basePrice = parseEuroInput(askingPrices[askingPrices.length - 1].price);
+          }
+
           const normalizedProp = {
             id: gistProp.id,
             url: gistProp.url || '',
             address: formatAddress(gistProp.address),
-            price: parseEuroInput(gistProp.price),
+            price: basePrice,
             imageUrl: gistProp.imageUrl || '',
             coordinates: gistProp.coordinates || { lat: 0, lng: 0 },
             pros: gistProp.pros || '',
             cons: gistProp.cons || '',
-            visits: Array.isArray(gistProp.visits) ? gistProp.visits : [],
+            visits: Array.isArray(gistProp.visits)
+              ? gistProp.visits
+                  .map((v) => ({
+                    date: (String(v?.date || '').slice(0, 10) || fallbackDate),
+                    status: (v?.status === 'gepland' || v?.status === 'bezocht') ? v.status : 'bezocht',
+                    notes: String(v?.notes || '').trim()
+                  }))
+                  .filter((v) => v.date)
+              : [],
             bids: Array.isArray(gistProp.bids) ? gistProp.bids : [],
+            askingPrices,
             scores: gistProp.scores && typeof gistProp.scores === 'object' ? gistProp.scores : Store.getEmptyScores(),
             status: gistProp.status || 'nieuw',
             propertyStatus: gistProp.propertyStatus || 'beschikbaar',

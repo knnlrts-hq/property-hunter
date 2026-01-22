@@ -1230,6 +1230,81 @@
     .modal__body {
       -webkit-overflow-scrolling: touch;
     }
+  
+    /* ============================================
+       AUTH OVERLAY (SUPABASE PASSWORD GATE)
+       ============================================ */
+    .auth-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(17, 24, 39, 0.72);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--spacing-lg);
+      z-index: 6000;
+    }
+
+    /* Ensure the HTML `hidden` attribute actually hides the overlay.
+       (Our `.auth-overlay { display:flex; }` would otherwise override it.) */
+    .auth-overlay[hidden] {
+      display: none;
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 420px;
+      background: white;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      padding: var(--spacing-lg);
+    }
+
+    .auth-title {
+      font-size: var(--font-size-xl);
+      font-weight: 700;
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .auth-subtitle {
+      color: var(--color-gray-700);
+      margin-bottom: var(--spacing-md);
+      line-height: 1.4;
+    }
+
+    .auth-form {
+      display: grid;
+      gap: var(--spacing-sm);
+    }
+
+    .auth-input {
+      width: 100%;
+      height: var(--touch-target);
+      padding: 0 var(--spacing-md);
+      border: 1px solid var(--color-gray-300);
+      border-radius: var(--radius-md);
+      font-size: var(--font-size-base);
+    }
+
+    .auth-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .auth-error {
+      color: var(--color-danger);
+      font-size: var(--font-size-sm);
+      min-height: 20px;
+    }
+
+    .auth-note {
+      margin-top: var(--spacing-sm);
+      color: var(--color-gray-500);
+      font-size: var(--font-size-sm);
+      line-height: 1.4;
+    }
+
   </style>
 </head>
 <body>
@@ -1322,17 +1397,44 @@
     <div class="toast-container" id="toastContainer"></div>
   </div>
 
+
+  <!-- Auth overlay (password-only gate) -->
+  <div id="authOverlay" class="auth-overlay" hidden>
+    <div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <div class="auth-title" id="authTitle">🔒 Huizenjager</div>
+      <div class="auth-subtitle">Voer het gedeelde wachtwoord in om verder te gaan.</div>
+
+      <form id="authForm" class="auth-form">
+        <input type="password" id="authPassword" class="auth-input"
+               placeholder="Wachtwoord" autocomplete="current-password" required>
+        <button type="submit" class="btn btn--primary btn--large" id="authLoginBtn">Inloggen</button>
+        <div class="auth-error" id="authError" aria-live="polite"></div>
+      </form>
+
+      <div class="auth-note">Tip: zodra je ingelogd bent, blijft dit normaal onthouden in je browser.</div>
+    </div>
+  </div>
+
+
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
           crossorigin=""></script>
+
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
     // ============================================
     // DATA STORE
     // ============================================
 
+    // Remote sync is enabled only after login + initial sync (see Supabase section)
+    var remoteSyncEnabled = false;
+    var remoteSaveTimer = null;
+
     const STORAGE_KEY = 'propertyHunter';
+    const STORAGE_UPDATED_AT_KEY = 'propertyHunterUpdatedAt';
     const DEFAULT_CATEGORIES = ['locatie', 'energie', 'staat', 'prijs', 'grootte', 'buitenruimte'];
     const CATEGORY_LABELS = {
       locatie: 'Locatie',
@@ -1413,6 +1515,9 @@
 
         // Ensure older data (or imports) have all expected fields
         this.normalizeData();
+
+        // Persist normalized data without marking it as "changed"
+        this.save({ skipRemote: true, touch: false });
         return this.data;
       },
 
@@ -1479,16 +1584,31 @@
           return normalized;
         });
 
-        // Ensure localStorage also gets the normalized structure
-        this.save();
       },
 
-      // Save to LocalStorage
-      save() {
+      // Save to LocalStorage (and optionally to Supabase)
+      save(options = {}) {
+        const { skipRemote = false, touch = true } = options;
+
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
         } catch (e) {
           console.error('Failed to save data:', e);
+        }
+
+        if (touch) {
+          try {
+            localStorage.setItem(STORAGE_UPDATED_AT_KEY, new Date().toISOString());
+          } catch (_) {}
+        }
+
+        // Remote write-through (debounced) — enabled only after login + initial sync
+        if (!skipRemote && remoteSyncEnabled) {
+          try {
+            scheduleRemoteSave(this.data);
+          } catch (e) {
+            console.error('Failed to schedule remote save:', e);
+          }
         }
       },
 
@@ -1618,6 +1738,7 @@
           if (imported.version && imported.properties) {
             this.data = imported;
             this.normalizeData();
+            this.save(); // persist + remote sync
             return true;
           }
         } catch (e) {
@@ -2440,120 +2561,253 @@
     }
 
     // ============================================
-    // GIST DATA LOADING
+    // SUPABASE (AUTH + SHARED STATE)
     // ============================================
 
-    const GIST_URL = 'https://gist.githubusercontent.com/knnlrts-hq/e78971e9be2cef060139dc63b57f5518/raw/property-hunter.json';
+    const SUPABASE_URL = 'https://wwgcaudgpcmduxaepafc.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_KCkE34FbpQxevvFOhKAanQ_tDLyoO7s';
+    const FIXED_EMAIL = 'huizenjager@login.local';
 
-    async function loadAndMergeGistData() {
-      try {
-        // Fetch with cache busting
-        const cacheBuster = Date.now();
-        const response = await fetch(`${GIST_URL}?t=${cacheBuster}`, {
-          cache: 'no-store'
-        });
+    const STATE_TABLE = 'property_hunter_state';
+    const STATE_ID = 'default';
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
+    // NOTE: The Supabase UMD bundle also defines a global `supabase` object.
+    // Avoid redeclaring `supabase` in this script to prevent "Identifier 'supabase' has already been declared".
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        const gistData = await response.json();
-
-        // Validate gist data structure
-        if (!gistData || !Array.isArray(gistData.properties)) {
-          throw new Error('Invalid gist data format');
-        }
-
-        // Merge gist data with localStorage
-        mergeGistWithLocal(gistData);
-
-      } catch (error) {
-        console.error('Failed to load gist data:', error);
-        showToast('Kon online data niet laden');
-      }
+    function isoToMs(iso) {
+      const t = Date.parse(String(iso || ''));
+      return Number.isFinite(t) ? t : 0;
     }
 
-    function mergeGistWithLocal(gistData) {
-      const localProperties = Store.getProperties();
-      const localIds = new Set(localProperties.map(p => p.id));
+    function snapshotState(state) {
+      try {
+        if (typeof structuredClone === 'function') return structuredClone(state);
+      } catch (_) {}
+      return JSON.parse(JSON.stringify(state));
+    }
 
-      // Track how many new properties were added
-      let newCount = 0;
+    async function fetchRemoteState() {
+      const { data, error } = await supabaseClient
+        .from(STATE_TABLE)
+        .select('data, updated_at')
+        .eq('id', STATE_ID)
+        .single();
 
-      // Add gist properties that don't exist locally
-      for (const gistProp of gistData.properties) {
-        if (gistProp.id && !localIds.has(gistProp.id)) {
-          // Normalize the gist property before adding
-          // Normalize askingPrices + main price
-          const fallbackDate = String(gistProp.dateAdded || new Date().toISOString()).split('T')[0] || new Date().toISOString().split('T')[0];
-          let basePrice = parseEuroInput(gistProp.price);
+      if (error) throw error;
+      return { state: data?.data, updatedAt: data?.updated_at || null };
+    }
 
-          let askingPrices = Array.isArray(gistProp.askingPrices)
-            ? gistProp.askingPrices
-                .map((e) => ({
-                  date: (String(e?.date || '').slice(0, 10) || fallbackDate),
-                  price: parseEuroInput(e?.price)
-                }))
-                .filter((e) => e.date)
-            : [];
+    async function pushRemoteState(state) {
+      const updated_at = new Date().toISOString();
+      const payload = { id: STATE_ID, data: state, updated_at };
 
-          if (askingPrices.length === 0 && basePrice > 0) {
-            askingPrices = [{ date: fallbackDate, price: basePrice }];
+      const { error } = await supabaseClient
+        .from(STATE_TABLE)
+        .upsert(payload, { onConflict: 'id' });
+
+      if (error) throw error;
+
+      // Keep local "last updated" aligned with remote writes
+      try {
+        localStorage.setItem(STORAGE_UPDATED_AT_KEY, updated_at);
+      } catch (_) {}
+      return updated_at;
+    }
+
+    function scheduleRemoteSave(state) {
+      if (!remoteSyncEnabled) return;
+
+      const snap = snapshotState(state);
+      clearTimeout(remoteSaveTimer);
+
+      remoteSaveTimer = setTimeout(async () => {
+        try {
+          await pushRemoteState(snap);
+        } catch (err) {
+          console.error('Remote save failed:', err);
+          showToast('Online opslaan mislukt');
+        }
+      }, 800);
+    }
+
+    // ----------------------------
+    // Password-only login gate
+    // ----------------------------
+
+    let pendingLoginResolve = null;
+
+    function showAuthOverlay(errorText = '') {
+      const overlay = document.getElementById('authOverlay');
+      const errorEl = document.getElementById('authError');
+      const pw = document.getElementById('authPassword');
+      const btn = document.getElementById('authLoginBtn');
+
+      overlay.hidden = false;
+      errorEl.textContent = errorText || '';
+      btn.disabled = false;
+      btn.textContent = 'Inloggen';
+      pw.value = '';
+      setTimeout(() => pw.focus(), 50);
+    }
+
+    function hideAuthOverlay() {
+      const overlay = document.getElementById('authOverlay');
+      overlay.hidden = true;
+    }
+
+    function initAuthOverlay() {
+      const form = document.getElementById('authForm');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const btn = document.getElementById('authLoginBtn');
+        const pw = document.getElementById('authPassword');
+        const errorEl = document.getElementById('authError');
+
+        btn.disabled = true;
+        btn.textContent = 'Bezig...';
+        errorEl.textContent = '';
+
+        try {
+          const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email: FIXED_EMAIL,
+            password: pw.value
+          });
+
+          if (error) {
+            errorEl.textContent = 'Wachtwoord onjuist.';
+            btn.disabled = false;
+            btn.textContent = 'Inloggen';
+            pw.focus();
+            pw.select();
+            return;
           }
 
-          if (askingPrices.length > 0) {
-            basePrice = parseEuroInput(askingPrices[askingPrices.length - 1].price);
+          hideAuthOverlay();
+          showToast('Ingelogd');
+
+          if (pendingLoginResolve) {
+            pendingLoginResolve(data.session);
+            pendingLoginResolve = null;
           }
+        } catch (err) {
+          console.error('Login failed:', err);
+          errorEl.textContent = 'Login mislukt. Probeer opnieuw.';
+          btn.disabled = false;
+          btn.textContent = 'Inloggen';
+        }
+      });
+    }
 
-          const normalizedProp = {
-            id: gistProp.id,
-            url: gistProp.url || '',
-            address: formatAddress(gistProp.address),
-            price: basePrice,
-            imageUrl: gistProp.imageUrl || '',
-            coordinates: gistProp.coordinates || { lat: 0, lng: 0 },
-            pros: gistProp.pros || '',
-            cons: gistProp.cons || '',
-            visits: Array.isArray(gistProp.visits)
-              ? gistProp.visits
-                  .map((v) => ({
-                    date: (String(v?.date || '').slice(0, 10) || fallbackDate),
-                    status: (v?.status === 'gepland' || v?.status === 'bezocht') ? v.status : 'bezocht',
-                    notes: String(v?.notes || '').trim()
-                  }))
-                  .filter((v) => v.date)
-              : [],
-            bids: Array.isArray(gistProp.bids) ? gistProp.bids : [],
-            askingPrices,
-            scores: gistProp.scores && typeof gistProp.scores === 'object' ? gistProp.scores : Store.getEmptyScores(),
-            status: gistProp.status || 'nieuw',
-            propertyStatus: gistProp.propertyStatus || 'beschikbaar',
-            dateAdded: gistProp.dateAdded || new Date().toISOString()
-          };
+    async function ensureAuthenticated() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session) return session;
 
-          Store.data.properties.push(normalizedProp);
-          newCount++;
+      showAuthOverlay();
+      return new Promise((resolve) => {
+        pendingLoginResolve = resolve;
+      });
+    }
+
+    // ----------------------------
+    // Initial sync (remote ↔ local)
+    // ----------------------------
+
+    async function syncInitialState() {
+      let remote;
+      try {
+        remote = await fetchRemoteState();
+      } catch (err) {
+        console.error('Failed to fetch remote state:', err);
+        showToast('Kon online data niet laden');
+        return;
+      }
+
+      const remoteState = remote?.state;
+      const remoteUpdatedAt = remote?.updatedAt;
+      const remoteTs = isoToMs(remoteUpdatedAt);
+
+      let localUpdatedAt = null;
+      try {
+        localUpdatedAt = localStorage.getItem(STORAGE_UPDATED_AT_KEY);
+      } catch (_) {}
+
+      const localTs = isoToMs(localUpdatedAt);
+      const remoteValid = remoteState && typeof remoteState === 'object' && Array.isArray(remoteState.properties);
+
+      const localHasData =
+        (Array.isArray(Store?.data?.properties) && Store.data.properties.length > 0) ||
+        (Array.isArray(Store?.data?.customCategories) && Store.data.customCategories.length > 0);
+
+      const remoteHasData =
+        (Array.isArray(remoteState?.properties) && remoteState.properties.length > 0) ||
+        (Array.isArray(remoteState?.customCategories) && remoteState.customCategories.length > 0);
+
+      const localHasTimestamp = !!localUpdatedAt;
+
+      // Upgrade safety:
+      // - Older versions didn't store a local timestamp.
+      // - If this browser already has data, and remote looks empty/default, prefer pushing local first.
+      if (localHasData && !localHasTimestamp && remoteValid && !remoteHasData) {
+        try {
+          await pushRemoteState(Store.data);
+        } catch (err) {
+          console.error('Failed to push local state:', err);
+          showToast('Kon online data niet opslaan');
+        }
+        return;
+      }
+
+      if (remoteValid && remoteHasData && !localHasData) {
+        // Remote has data, local is empty → pull remote
+        Store.data = remoteState;
+        Store.normalizeData();
+        Store.save({ skipRemote: true, touch: false });
+
+        if (remoteUpdatedAt) {
+          try { localStorage.setItem(STORAGE_UPDATED_AT_KEY, remoteUpdatedAt); } catch (_) {}
+        }
+        return;
+      }
+
+      if (localHasData && (!remoteValid || !remoteHasData)) {
+        // Local has data, remote is missing/invalid/empty → push local
+        try {
+          await pushRemoteState(Store.data);
+        } catch (err) {
+          console.error('Failed to push local state:', err);
+          showToast('Kon online data niet opslaan');
+        }
+        return;
+      }
+
+      if (remoteValid && remoteTs >= localTs) {
+        // Remote is newer (or equal) → hydrate localStorage
+        Store.data = remoteState;
+        Store.normalizeData();
+        Store.save({ skipRemote: true, touch: false });
+
+        if (remoteUpdatedAt) {
+          try { localStorage.setItem(STORAGE_UPDATED_AT_KEY, remoteUpdatedAt); } catch (_) {}
+        }
+      } else {
+        // Local is newer → push to remote
+        try {
+          await pushRemoteState(Store.data);
+        } catch (err) {
+          console.error('Failed to push local state:', err);
+          showToast('Kon online data niet opslaan');
         }
       }
 
-      // Merge custom categories from gist
-      if (Array.isArray(gistData.customCategories)) {
-        for (const cat of gistData.customCategories) {
-          if (!Store.data.customCategories.includes(cat)) {
-            Store.data.customCategories.push(cat);
-          }
-        }
-      }
-
-      // Save merged data
-      if (newCount > 0 || (gistData.customCategories && gistData.customCategories.length > 0)) {
-        Store.save();
-      }
     }
 
     // ============================================
     // MAP TOGGLE (FOLDABLE MAP)
     // ============================================
+
 
     let isMapHidden = false;
 
@@ -2639,15 +2893,23 @@
 
     // Update DOMContentLoaded
     document.addEventListener('DOMContentLoaded', async function() {
-      initMap();
-      initFilters();
-      initMapToggle();
-      initHeaderClick();
+      initAuthOverlay();
 
-      // Load data from gist and merge with localStorage
-      await loadAndMergeGistData();
+      try {
+        await ensureAuthenticated();
+        await syncInitialState();
+        remoteSyncEnabled = true;
 
-      renderApp();
+        initMap();
+        initFilters();
+        initMapToggle();
+        initHeaderClick();
+
+        renderApp();
+      } catch (err) {
+        console.error('Startup failed:', err);
+        showAuthOverlay('Kon niet starten. Probeer opnieuw.');
+      }
     });
 
     // ============================================

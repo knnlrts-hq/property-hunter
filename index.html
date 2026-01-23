@@ -1366,10 +1366,10 @@
             <div class="filter-group">
               <label class="filter-label">Sorteren:</label>
               <select id="filterSort" class="filter-select">
+                <option value="date" selected>Datum toegevoegd (nieuwste eerst)</option>
                 <option value="score">Score (hoog → laag)</option>
                 <option value="price_asc">Prijs (laag → hoog)</option>
                 <option value="price_desc">Prijs (hoog → laag)</option>
-                <option value="date">Datum toegevoegd</option>
               </select>
             </div>
             <button class="btn btn--text" id="clearFilters">Filters wissen</button>
@@ -1871,6 +1871,92 @@
 
     let currentPropertyId = null;
 
+
+    function openPropertyEdit(id) {
+      const property = Store.getProperty(id);
+      if (!property) return;
+
+      currentPropertyId = id;
+
+      const content = `
+        <div class="modal__header">
+          <button class="modal__back" onclick="openPropertyDetail('${id}')">← Terug</button>
+          <span class="modal__title">Woning bewerken</span>
+          <button class="modal__close" onclick="openPropertyDetail('${id}')" title="Annuleren">×</button>
+        </div>
+        <div class="modal__body">
+          <div class="detail-section">
+            <div class="detail-section__title">Basisgegevens</div>
+
+            <div class="form-group">
+              <label class="form-label form-label--required">Adres</label>
+              <input type="text" class="form-input" id="editAddress"
+                     placeholder="Straat 123, Gemeente"
+                     value="${escapeHtml(property.address || '')}">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Advertentie URL</label>
+              <input type="url" class="form-input" id="editUrl"
+                     placeholder="https://..."
+                     value="${escapeHtml(property.url || '')}">
+              <p class="form-hint">Optioneel - plak de link naar de advertentie</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Afbeelding URL</label>
+              <input type="url" class="form-input" id="editImageUrl"
+                     placeholder="https://...jpg"
+                     value="${escapeHtml(property.imageUrl || '')}">
+              <p class="form-hint">Optioneel - kopieer afbeelding-URL van de advertentie</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal__footer">
+          <button class="btn btn--secondary btn--large" onclick="openPropertyDetail('${id}')">Annuleren</button>
+          <button class="btn btn--primary btn--large" id="editSaveBtn">Opslaan ✓</button>
+        </div>
+      `;
+
+      openModal(content, { full: true });
+
+      setTimeout(() => {
+        const addressInput = document.getElementById('editAddress');
+        if (addressInput) addressInput.focus();
+      }, 80);
+
+      document.getElementById('editSaveBtn').addEventListener('click', () => {
+        const addressEl = document.getElementById('editAddress');
+        const address = (addressEl?.value || '').trim();
+        const url = (document.getElementById('editUrl')?.value || '').trim();
+        const imageUrl = (document.getElementById('editImageUrl')?.value || '').trim();
+
+        if (!address) {
+          if (addressEl) {
+            addressEl.classList.add('form-input--error');
+            addressEl.focus();
+          }
+          return;
+        }
+
+        Store.updateProperty(id, {
+          address: formatAddress(address),
+          url,
+          imageUrl
+        });
+
+        showToast('Woning aangepast');
+        openPropertyDetail(id);
+        renderApp();
+      });
+
+      // Highlight marker on map
+      if (markers[id]) {
+        markers[id].openPopup();
+      }
+    }
+
+
     function openPropertyDetail(id) {
       const property = Store.getProperty(id);
       if (!property) return;
@@ -1887,6 +1973,7 @@
         <div class="modal__header">
           <button class="modal__back" onclick="closeModal()">← Terug</button>
           <div class="modal__actions">
+            <button class="modal__close" onclick="openPropertyEdit('${id}')" title="Bewerken">✏️</button>
             <button class="modal__close" onclick="confirmDeleteProperty('${id}')" title="Verwijderen">🗑️</button>
           </div>
         </div>
@@ -2100,15 +2187,6 @@
                 <button class="btn btn--primary btn--small" onclick="addVisit()">Toevoegen</button>
               </div>
             </div>
-          </div>
-
-          <!-- Afbeelding URL -->
-          <div class="detail-section">
-            <div class="detail-section__title">Afbeelding URL</div>
-            <input type="url" class="form-input" id="detailImageUrl"
-                   value="${escapeHtml(property.imageUrl || '')}"
-                   onchange="updatePropertyField('imageUrl', this.value)"
-                   placeholder="https://...jpg">
           </div>
         </div>
       `;
@@ -2431,7 +2509,7 @@
       search: '',
       status: '',
       propertyStatus: '',
-      sort: 'score'
+      sort: 'date'
     };
 
     // Filter and sort properties
@@ -2508,13 +2586,13 @@
         search: '',
         status: '',
         propertyStatus: '',
-        sort: 'score'
+        sort: 'date'
       };
 
       document.getElementById('searchInput').value = '';
       document.getElementById('filterStatus').value = '';
       document.getElementById('filterPropertyStatus').value = '';
-      document.getElementById('filterSort').value = 'score';
+      document.getElementById('filterSort').value = 'date';
 
       applyFilters();
     }
